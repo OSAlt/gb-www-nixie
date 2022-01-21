@@ -1,0 +1,13 @@
+kind: pipeline
+name: default
+
+steps:
+  - name: docker
+    image: plugins/docker
+    settings:
+      repo: geekbeacon/gb-ghost
+      tags: 3.41.5
+      username:
+        from_secret: DOCKER_USER
+      password:
+        from_secret: DOCKER_PASS

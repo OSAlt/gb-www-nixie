@@ -1,0 +1,21 @@
+version: "3.7"
+
+services:
+  beta_site:
+    external_links:
+      - shared_mysql
+    networks:
+      - shared_backend
+    image: geekbeacon/gb-ghost:4.32.0
+    ports:
+      - "8890:2368"
+    restart: always
+    env_file: .env
+    volumes:
+      - ./content:/var/lib/ghost/content/
+      - ./keys:/var/lib/ghost/keys/
+
+networks:
+  shared_backend:
+    name: shared_backend
+    external: true

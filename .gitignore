@@ -1,0 +1,8 @@
+.env
+keys
+docker-compose.yml
+content/logs
+content/adapters/storage/gcs
+content/adapters/storage/gcs/
+content/adapters/storage/s3/
+data

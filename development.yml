@@ -1,0 +1,37 @@
+version: "3.7"
+services:
+  nixie_landing:
+    networks:
+      - shared_backend
+    image: geekbeacon/gb-ghost:4.32.0
+    ports:
+      - "8890:2368"
+    restart: always
+    env_file: .env
+    volumes:
+      - ./content:/var/lib/ghost/content/
+      - ./keys:/var/lib/ghost/keys/
+  shared_mysql:
+    container_name: shared_mysql
+    image: mysql:5.7.29
+    restart: always
+    env_file: .env
+    volumes:
+      - ./data:/var/lib/mysql
+    networks:
+      - shared_backend
+    ports:
+      - 3306:3306
+  mail:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mail
+    ports:
+      - 8025:8025
+    networks:
+      - shared_backend
+
+networks:
+  shared_backend:
+    name: shared_backend
+    # use a custom driver, with no options
+    driver: bridge
