@@ -3,14 +3,23 @@ package blog
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/config"
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/mmcdole/gofeed"
 )
 
+type cacheEntry struct {
+	posts     []domain.BlogPost
+	expiresAt time.Time
+}
+
 type Service struct {
-	cfg *config.Config
+	cfg   *config.Config
+	cache cacheEntry
+	mu    sync.RWMutex
 }
 
 func NewService(cfg *config.Config) *Service {
@@ -18,6 +27,22 @@ func NewService(cfg *config.Config) *Service {
 }
 
 func (s *Service) GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error) {
+	s.mu.RLock()
+	if time.Now().Before(s.cache.expiresAt) {
+		posts := s.cache.posts
+		s.mu.RUnlock()
+		return posts, nil
+	}
+	s.mu.RUnlock()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Double check after acquiring write lock
+	if time.Now().Before(s.cache.expiresAt) {
+		return s.cache.posts, nil
+	}
+
 	fp := gofeed.NewParser()
 	var allPosts []domain.BlogPost
 
@@ -67,9 +92,11 @@ func (s *Service) GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
 		}
 	}
 
-	// Sort by date if we have parsing logic, or just return as is if mixed.
-	// For now, let's assume they are already somewhat ordered or just return.
-	// gofeed usually preserves feed order.
+	// Update cache (5 minute TTL)
+	s.cache = cacheEntry{
+		posts:     allPosts,
+		expiresAt: time.Now().Add(30 * time.Minute),
+	}
 
 	return allPosts, nil
 }
