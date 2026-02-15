@@ -146,23 +146,12 @@ templ About() {
 }
 
 templ Media(media []domain.MediaPost) {
-
 	<section id="media" class="pb-4 pt-5">
 		<h1 class="text-white text-center mt-3 mb-4">Check Out My Social Feed!</h1>
-<!-- Place <div> tag where you want the feed to appear -->
-<div id="curator-feed-default-feed-layout"><a href="https://curator.io" target="_blank" class="crt-logo crt-tag">Powered by Curator.io</a></div>
-
-<!-- The Javascript can be moved to the end of the html page before the </body> tag -->
-<script type="text/javascript">
-/* curator-feed-default-feed-layout */
-(function(){
-var i,e,d=document,s="script";i=d.createElement("script");i.async=1;i.charset="UTF-8";
-i.src="https://cdn.curator.io/published/665652c2-9507-4961-9372-637c95380d14.js";
-e=d.getElementsByTagName(s)[0];e.parentNode.insertBefore(i, e);
-})();
-</script>
-
-
+		<!-- Place <div> tag where you want the feed to appear -->
+		<div id="curator-feed-default-feed-layout"><a href="https://curator.io" target="_blank" class="crt-logo crt-tag">Powered by Curator.io</a></div>
+		<!-- The Javascript can be moved to the end of the html page before the </body> tag -->
+		<script type="text/javascript" src="https://cdn.curator.io/published/665652c2-9507-4961-9372-637c95380d14.js" async charset="UTF-8"></script>
 	</section>
 }
 
@@ -195,7 +184,7 @@ templ GeekBeacon() {
 templ Contact(subjects []string) {
 	<section id="contact" class="col-12 py-5 text-white">
 		<h1 class="text-white text-center mb-3">Contact Me!</h1>
-		<form id="contact-form" hx-post="/contact" hx-target="#contact-form" hx-swap="outerHTML">
+		<form id="fs-frm" name="department-contact-form" accept-charset="utf-8" action="https://formspree.io/f/xleadqng" method="post">
 			<fieldset id="fs-frm-inputs">
 				<div class="row justify-content-around">
 					<div class="mb-4 col-10 col-md-3">
@@ -204,15 +193,12 @@ templ Contact(subjects []string) {
 					</div>
 					<div class="mb-4 col-10 col-md-3">
 						<label class="col-form-label-sm" for="email">Email</label>
-						<input class="form-control" type="email" name="email" id="email" placeholder="user@domain.tld" required />
+						<input class="form-control" type="email" name="_replyto" id="email" placeholder="user@domain.tld" required />
 					</div>
 					<div class="mb-4 col-10 col-md-3">
 						<label class="col-form-label-sm" for="subject">Subject</label>
 						<select class="form-control" name="subject" id="subject">
 							<option value="Select" disabled selected>Select</option>
-							for _, subject := range subjects {
-								<option value={ subject }>{ subject }</option>
-							}
 							<option value="Say Hello">Say Hello</option>
 							<option value="Speaking Engagements">Speaking Engagements</option>
 							<option value="Business Opportunity">Business Opportunity</option>
@@ -227,7 +213,8 @@ templ Contact(subjects []string) {
 					</div>
 				</div>
 				<div class="text-center">
-					<button type="submit" class="btn btn-lg btn-success mt-3">Submit</button>
+					<input type="hidden" name="_subject" id="email-subject" value="NixiePixel Contact Form Submission"/>
+					<input id="submit" type="submit" value="Submit" class="btn btn-lg btn-success mt-3"/>
 				</div>
 			</fieldset>
 		</form>

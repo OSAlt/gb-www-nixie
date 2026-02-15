@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+
 	"github.com/osalt/nixiesite/internal/domain"
 )
 
@@ -10,6 +11,11 @@ type MediaService interface {
 }
 
 type ContactService interface {
-	SendMessage(ctx context.Context, msg domain.ContactMessage) error
 	GetSubjects(ctx context.Context) ([]string, error)
+}
+
+type DBService interface {
+	ListContacts(ctx context.Context, domain string) ([]domain.ContactMessage, error)
+	GetSocialCounts(ctx context.Context) (map[string]int, error)
+	GetInstagramActivity(ctx context.Context, limit int) ([]any, error)
 }

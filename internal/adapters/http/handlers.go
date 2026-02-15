@@ -1,51 +1,76 @@
 package http
 
 import (
-    "net/http"
+	"encoding/json"
+	"net/http"
+	"strconv"
 
-    "github.com/a-h/templ"
-    "github.com/osalt/nixiesite/internal/domain"
-    "github.com/osalt/nixiesite/internal/ports"
-    "github.com/osalt/nixiesite/internal/templates"
+	"github.com/a-h/templ"
+	"github.com/osalt/nixiesite/internal/ports"
+	"github.com/osalt/nixiesite/internal/templates"
 )
 
 type Handler struct {
-    mediaService   ports.MediaService
-    contactService ports.ContactService
+	mediaService   ports.MediaService
+	contactService ports.ContactService
+	dbService      ports.DBService
 }
 
-func NewHandler(mediaService ports.MediaService, contactService ports.ContactService) *Handler {
-    return &Handler{
-        mediaService:   mediaService,
-        contactService: contactService,
-    }
+func NewHandler(mediaService ports.MediaService, contactService ports.ContactService, dbService ports.DBService) *Handler {
+	return &Handler{
+		mediaService:   mediaService,
+		contactService: contactService,
+		dbService:      dbService,
+	}
 }
 
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
-    media, _ := h.mediaService.GetRecentPosts(r.Context(), 6)
-    subjects, _ := h.contactService.GetSubjects(r.Context())
+	media, _ := h.mediaService.GetRecentPosts(r.Context(), 6)
+	subjects, _ := h.contactService.GetSubjects(r.Context())
 
-    if subjects == nil {
-        subjects = []string{"Say Hello", "Speaking Engagements", "Business Opportunity", "Content Collaboration"}
-    }
+	if subjects == nil {
+		subjects = []string{"Say Hello", "Speaking Engagements", "Business Opportunity", "Content Collaboration"}
+	}
 
-    templ.Handler(templates.Index(media, subjects)).ServeHTTP(w, r)
+	templ.Handler(templates.Index(media, subjects)).ServeHTTP(w, r)
 }
 
 func (h *Handler) Contact(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-        return
-    }
+	templ.Handler(templates.ContactSuccess()).ServeHTTP(w, r)
+}
 
-    r.ParseForm()
-    msg := domain.ContactMessage{
-        Name:    r.FormValue("name"),
-        Email:   r.FormValue("email"),
-        Subject: r.FormValue("subject"),
-        Message: r.FormValue("message"),
-    }
+func (h *Handler) APIListContacts(w http.ResponseWriter, r *http.Request) {
+	domainName := r.URL.Query().Get("domain")
+	contacts, err := h.dbService.ListContacts(r.Context(), domainName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(contacts)
+}
 
-    h.contactService.SendMessage(r.Context(), msg)
-    templ.Handler(templates.ContactSuccess()).ServeHTTP(w, r)
+func (h *Handler) APISocialCountAll(w http.ResponseWriter, r *http.Request) {
+	counts, err := h.dbService.GetSocialCounts(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(counts)
+}
+
+func (h *Handler) APISocialInstagramActivity(w http.ResponseWriter, r *http.Request) {
+	countStr := r.URL.Query().Get("count")
+	count, err := strconv.Atoi(countStr)
+	if err != nil {
+		count = 20
+	}
+	activity, err := h.dbService.GetInstagramActivity(r.Context(), count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activity)
 }

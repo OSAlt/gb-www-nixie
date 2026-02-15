@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: nixie
+      POSTGRES_PASSWORD: nixie_password
+      POSTGRES_DB: nixiedb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nixie -d nixiedb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    image: nixiesite:latest
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgres://nixie:nixie_password@db:5432/nixiedb?sslmode=disable"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "go run -modfile tools/go.mod github.com/pressly/goose/v3/cmd/goose -dir db/migrations postgres \"$$DATABASE_URL\" up && /server"

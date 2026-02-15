@@ -282,7 +282,7 @@ func Media(media []domain.MediaPost) templ.Component {
 			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<section id=\"media\" class=\"pb-4 pt-5\"><h1 class=\"text-white text-center mt-3 mb-4\">Check Out My Social Feed!</h1><!-- Place <div> tag where you want the feed to appear --><div id=\"curator-feed-default-feed-layout\"><a href=\"https://curator.io\" target=\"_blank\" class=\"crt-logo crt-tag\">Powered by Curator.io</a></div><!-- The Javascript can be moved to the end of the html page before the </body> tag --><script type=\"text/javascript\">\n/* curator-feed-default-feed-layout */\n(function(){\nvar i,e,d=document,s=\"script\";i=d.createElement(\"script\");i.async=1;i.charset=\"UTF-8\";\ni.src=\"https://cdn.curator.io/published/665652c2-9507-4961-9372-637c95380d14.js\";\ne=d.getElementsByTagName(s)[0];e.parentNode.insertBefore(i, e);\n})();\n</script></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<section id=\"media\" class=\"pb-4 pt-5\"><h1 class=\"text-white text-center mt-3 mb-4\">Check Out My Social Feed!</h1><!-- Place <div> tag where you want the feed to appear --><div id=\"curator-feed-default-feed-layout\"><a href=\"https://curator.io\" target=\"_blank\" class=\"crt-logo crt-tag\">Powered by Curator.io</a></div><!-- The Javascript can be moved to the end of the html page before the </body> tag --><script type=\"text/javascript\" src=\"https://cdn.curator.io/published/665652c2-9507-4961-9372-637c95380d14.js\" async charset=\"UTF-8\"></script></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -369,43 +369,7 @@ func Contact(subjects []string) templ.Component {
 			templ_7745c5c3_Var12 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<section id=\"contact\" class=\"col-12 py-5 text-white\"><h1 class=\"text-white text-center mb-3\">Contact Me!</h1><form id=\"contact-form\" hx-post=\"/contact\" hx-target=\"#contact-form\" hx-swap=\"outerHTML\"><fieldset id=\"fs-frm-inputs\"><div class=\"row justify-content-around\"><div class=\"mb-4 col-10 col-md-3\"><label class=\"col-form-label-sm\" for=\"name\">Name</label> <input class=\"form-control\" type=\"text\" name=\"name\" id=\"name\" placeholder=\"Name\" required></div><div class=\"mb-4 col-10 col-md-3\"><label class=\"col-form-label-sm\" for=\"email\">Email</label> <input class=\"form-control\" type=\"email\" name=\"email\" id=\"email\" placeholder=\"user@domain.tld\" required></div><div class=\"mb-4 col-10 col-md-3\"><label class=\"col-form-label-sm\" for=\"subject\">Subject</label> <select class=\"form-control\" name=\"subject\" id=\"subject\"><option value=\"Select\" disabled selected>Select</option> ")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		for _, subject := range subjects {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<option value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(subject)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/index.templ`, Line: 214, Col: 31}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(subject)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/index.templ`, Line: 214, Col: 43}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</option> ")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<option value=\"Say Hello\">Say Hello</option> <option value=\"Speaking Engagements\">Speaking Engagements</option> <option value=\"Business Opportunity\">Business Opportunity</option> <option value=\"Content Collaboration\">Content Collaboration</option></select></div></div><div class=\"row mb-4 justify-content-center\"><div class=\"col-10 col-md-11\"><label class=\"col-form-label-sm\" for=\"message\">Message</label> <textarea class=\"form-control\" name=\"message\" id=\"message\" rows=\"3\" placeholder=\"Message...\"></textarea></div></div><div class=\"text-center\"><button type=\"submit\" class=\"btn btn-lg btn-success mt-3\">Submit</button></div></fieldset></form></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<section id=\"contact\" class=\"col-12 py-5 text-white\"><h1 class=\"text-white text-center mb-3\">Contact Me!</h1><form id=\"fs-frm\" name=\"department-contact-form\" accept-charset=\"utf-8\" action=\"https://formspree.io/f/xleadqng\" method=\"post\"><fieldset id=\"fs-frm-inputs\"><div class=\"row justify-content-around\"><div class=\"mb-4 col-10 col-md-3\"><label class=\"col-form-label-sm\" for=\"name\">Name</label> <input class=\"form-control\" type=\"text\" name=\"name\" id=\"name\" placeholder=\"Name\" required></div><div class=\"mb-4 col-10 col-md-3\"><label class=\"col-form-label-sm\" for=\"email\">Email</label> <input class=\"form-control\" type=\"email\" name=\"_replyto\" id=\"email\" placeholder=\"user@domain.tld\" required></div><div class=\"mb-4 col-10 col-md-3\"><label class=\"col-form-label-sm\" for=\"subject\">Subject</label> <select class=\"form-control\" name=\"subject\" id=\"subject\"><option value=\"Select\" disabled selected>Select</option> <option value=\"Say Hello\">Say Hello</option> <option value=\"Speaking Engagements\">Speaking Engagements</option> <option value=\"Business Opportunity\">Business Opportunity</option> <option value=\"Content Collaboration\">Content Collaboration</option></select></div></div><div class=\"row mb-4 justify-content-center\"><div class=\"col-10 col-md-11\"><label class=\"col-form-label-sm\" for=\"message\">Message</label> <textarea class=\"form-control\" name=\"message\" id=\"message\" rows=\"3\" placeholder=\"Message...\"></textarea></div></div><div class=\"text-center\"><input type=\"hidden\" name=\"_subject\" id=\"email-subject\" value=\"NixiePixel Contact Form Submission\"> <input id=\"submit\" type=\"submit\" value=\"Submit\" class=\"btn btn-lg btn-success mt-3\"></div></fieldset></form></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -429,12 +393,12 @@ func ContactSuccess() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var15 == nil {
-			templ_7745c5c3_Var15 = templ.NopComponent
+		templ_7745c5c3_Var13 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var13 == nil {
+			templ_7745c5c3_Var13 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<div class=\"alert alert-success text-center\">Your message has been sent successfully!</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"alert alert-success text-center\">Your message has been sent successfully!</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
