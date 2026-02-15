@@ -12,6 +12,7 @@ services:
       - .env
     volumes:
       - ./db/migrations:/app/db/migrations
+      - ./config:/app/config/
       - ./static:/app/static
 
 
