@@ -11,9 +11,17 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
+type Newsletter struct {
+	Name        string `koanf:"name"`
+	Description string `koanf:"description"`
+	URL         string `koanf:"url"`
+}
+
 type Config struct {
-	Port        string `koanf:"port"`
-	DatabaseURL string `koanf:"database_url"`
+	Port        string       `koanf:"port"`
+	DatabaseURL string       `koanf:"database_url"`
+	BlogURLs    []string     `koanf:"blog_urls"`
+	Newsletters []Newsletter `koanf:"newsletters"`
 }
 
 func Load() (*Config, error) {

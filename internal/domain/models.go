@@ -23,3 +23,15 @@ type ContactMessage struct {
 	Subject string
 	Message string
 }
+
+// BlogPost represents a blog post from an external feed.
+type BlogPost struct {
+	Title       string
+	Description string
+	Content     string
+	URL         string
+	PublishedAt string
+	Author      string
+	ImageURL    string
+	Categories  []string
+}

@@ -32,6 +32,9 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .bg-dark { background-color: var(--dark); }
 
 .border-purple { border-color: var(--purple); }
+.border-blue { border-color: var(--blue); }
+.border-green { border-color: var(--green); }
+.border-pink { border-color: var(--pink); }
 
 .text-underline { text-decoration: underline; }
 .opacity-75 { opacity: 0.75; }
@@ -55,7 +58,7 @@ header {
 }
 
 #intro {
-    height: 93vh;
+    height: calc(100vh - 96px); /* Adjusted for main header (56px) + sub-nav (40px approx) */
     position: relative;
 }
 
@@ -138,6 +141,29 @@ header {
     bottom: 25px;
     right: 25px;
     z-index: 99;
+}
+
+.btn-outline-blue {
+    color: var(--blue);
+    border-color: var(--blue);
+}
+.btn-outline-blue:hover {
+    background-color: var(--blue);
+    color: var(--black);
+}
+
+.btn-outline-purple {
+    color: var(--purple);
+    border-color: var(--purple);
+}
+.btn-outline-purple:hover {
+    background-color: var(--purple);
+    color: var(--black);
+}
+
+.sub-nav {
+    top: 56px; /* Height of the main sticky-top header */
+    z-index: 1019; /* Just below main header if needed */
 }
 
 @media (max-width: 768px) {

@@ -42,3 +42,10 @@ type NixieContactForm struct {
 	Description   string
 	Domain        string
 }
+
+type NixieGooseDbVersion struct {
+	ID        int32
+	VersionID int64
+	IsApplied bool
+	Tstamp    pgtype.Timestamp
+}
