@@ -1,0 +1,147 @@
+:root {
+    --blue: #80BCCF;
+    --green: #7CCDCA;
+    --pink: #D883CE;
+    --purple: #9F8CD7;
+    --black: #1a1a1a;
+    --white: #fafafa;
+    --dark: #4f4f4f;
+    --light: #e1e1e1;
+}
+
+body {
+    background-color: var(--black);
+    font-family: 'Comfortaa', cursive;
+    color: var(--light);
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: 'Indie Flower', cursive;
+}
+
+.text-purple { color: var(--purple); }
+.text-blue { color: var(--blue); }
+.text-green { color: var(--green); }
+.text-pink { color: var(--pink); }
+.text-light { color: var(--light); }
+.text-white { color: var(--white); }
+
+.bg-purple { background-color: var(--purple); }
+.bg-dark { background-color: var(--dark); }
+
+.border-purple { border-color: var(--purple); }
+
+.text-underline { text-decoration: underline; }
+.opacity-75 { opacity: 0.75; }
+
+.intro-text {
+    font-size: 1.5rem;
+}
+
+header {
+    background-color: var(--dark);
+}
+
+.social-icons .fab, .social-icons .fas {
+    color: var(--light);
+    font-size: 1.2rem;
+    margin: 0 5px;
+}
+
+.social-icons a:hover {
+    opacity: 0.75;
+}
+
+#intro {
+    height: 93vh;
+    position: relative;
+}
+
+#headerImg {
+    background-image: url('/static/imgs/concept-intro-site.png');
+    height: 100%;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+#intro .fa-chevron-down {
+    position: absolute;
+    bottom: 5%;
+    left: 48%;
+    font-size: 5rem;
+    color: rgba(225, 225, 225, 0.75);
+}
+
+#about, #media, #contact {
+    background-color: rgba(40,40,40,0.75);
+}
+
+#about ul li {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: var(--white);
+}
+
+#stats {
+    background-color: rgba(0,0,0,0.5);
+    position: relative;
+    min-height: 100vh;
+}
+
+#stats div:first-of-type {
+    height: 100vh;
+}
+
+#stats:before {
+    content: " ";
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background-image: url('/static/imgs/llamas.jpg');
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: -1;
+}
+
+/* Breakpoint for Llama Chart */
+@media (min-width: 548px) {
+    #stats div:first-of-type {
+        height: 50vh;
+    }
+}
+
+#geekbeacon {
+    background-color: rgba(0,0,0,0.5);
+    position: relative;
+    min-height: 100vh;
+}
+
+#geekbeacon:before {
+    content: " ";
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background-image: url('/static/imgs/gb.png');
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: -1;
+}
+
+#toTop {
+    display: none;
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 99;
+}
+
+@media (max-width: 768px) {
+    .intro-text {
+        font-size: 1.1rem;
+    }
+}
