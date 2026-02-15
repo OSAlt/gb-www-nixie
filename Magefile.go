@@ -51,14 +51,14 @@ func DumpSchema() error {
 	fmt.Println("Dumping schema to db/schema.sql...")
 
 	// We'll use docker exec to run pg_dump since the DB is in a container
-	// If DATABASE_URL is localhost, we might need a different approach, but based on docker-compose it should work.
+	// If DATABASE_URL is localhost, we might need a different approach, but based on docker-compose.dev.yaml it should work.
 	// Actually, let's try to parse the DSN to get db name and user, or just use the container name from docker-compose.
 	// The container name is usually project_service_1.
 
 	// Better approach: use pg_dump directly if available, or via docker if we know the container name.
 	// Based on previous output, the container is newnixie-db-1.
 
-	cmd := exec.Command("docker", "exec", "newnixie-db-1", "pg_dump", "-U", "nixie", "-d", "nixiedb", "--schema-only", "--no-owner", "--no-privileges")
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "exec", "db", "pg_dump", "-U", "nixie", "-d", "nixiedb", "--schema-only", "--no-owner", "--no-privileges")
 
 	// Filter out \restrict and \unrestrict lines that sqlc doesn't like
 	// and also some other postgres-specific commands that might cause issues.
@@ -123,6 +123,42 @@ func Migrate() error {
 	migErr := Goose("up")
 	DumpSchema()
 	return migErr
+}
+
+// MigrateCreate creates a new migration file
+func MigrateCreate(name string) error {
+	readEnv()
+	fmt.Printf("Creating migration: %s\n", name)
+
+	args := []string{"run", "-modfile", "tools/go.mod", "github.com/pressly/goose/v3/cmd/goose", "-dir", "db/migrations", "create", name, "sql"}
+
+	cmd := exec.Command("go", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// DbUp starts the database container for development
+func DbUp() error {
+	fmt.Println("Starting database...")
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "up", "-d", "db")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// DbDown stops the database container for development
+func DbDown() error {
+	fmt.Println("Stopping database...")
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "stop", "db")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// Dev runs the database and the application in development mode
+func Dev() {
+	mg.SerialDeps(DbUp, Migrate, Run)
 }
 
 // Clean removes build artifacts

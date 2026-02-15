@@ -1,0 +1,70 @@
+package templates
+
+import (
+	"github.com/OSAlt/gb-www-nixie/internal/config"
+)
+
+templ ContactPage(subjects []string, newsletters []config.Newsletter) {
+	@Layout("NixiePixel - Contact") {
+		<section id="contact-page" class="py-5 mt-5">
+			<div class="container mt-5">
+				<div class="row">
+					<div class="col-md-7">
+						<h2 class="text-purple border-bottom border-purple pb-2 mb-4">Contact Me</h2>
+						@ContactForm(subjects)
+					</div>
+					<div class="col-md-5 mt-5 mt-md-0">
+						<h2 class="text-purple border-bottom border-purple pb-2 mb-4">Newsletters</h2>
+						for _, newsletter := range newsletters {
+							<div class="card bg-dark text-light border-purple mb-4">
+								<div class="card-body text-center py-5">
+									<h3 class="card-title text-purple mb-4">{ newsletter.Name }</h3>
+									<p class="card-text mb-4">Subscribe to the { newsletter.Description } newsletter for the latest updates, projects, and community news.</p>
+									<a href={ templ.URL(newsletter.URL) } target="_blank" class="btn btn-outline-purple btn-lg">Subscribe to { newsletter.Name }</a>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		</section>
+	}
+}
+
+templ ContactForm(subjects []string) {
+	<form id="fs-frm" name="department-contact-form" accept-charset="utf-8" action="https://formspree.io/f/xleadqng" method="post">
+		<fieldset id="fs-frm-inputs">
+			<div class="mb-4">
+				<label class="col-form-label-sm" for="name">Name</label>
+				<input class="form-control bg-dark text-light border-purple" type="text" name="name" id="name" placeholder="Name" required />
+			</div>
+			<div class="mb-4">
+				<label class="col-form-label-sm" for="email">Email</label>
+				<input class="form-control bg-dark text-light border-purple" type="email" name="_replyto" id="email" placeholder="user@domain.tld" required />
+			</div>
+			<div class="mb-4">
+				<label class="col-form-label-sm" for="subject">Subject</label>
+				<select class="form-control bg-dark text-light border-purple" name="subject" id="subject">
+					<option value="Select" disabled selected>Select</option>
+					for _, subject := range subjects {
+						<option value={ subject }>{ subject }</option>
+					}
+				</select>
+			</div>
+			<div class="mb-4">
+				<label class="col-form-label-sm" for="message">Message</label>
+				<textarea class="form-control bg-dark text-light border-purple" name="message" id="message" rows="5" placeholder="Message..."></textarea>
+			</div>
+			<div class="text-center">
+				<input type="hidden" name="_subject" id="email-subject" value="NixiePixel Contact Form Submission"/>
+				<input id="submit" type="submit" value="Submit Message" class="btn btn-lg btn-outline-purple mt-3"/>
+			</div>
+		</fieldset>
+	</form>
+}
+
+templ ContactSuccess() {
+	<div class="alert alert-success bg-dark text-light border-purple text-center">
+		Your message has been sent successfully!
+	</div>
+}

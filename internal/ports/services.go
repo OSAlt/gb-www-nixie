@@ -19,3 +19,7 @@ type DBService interface {
 	GetSocialCounts(ctx context.Context) (map[string]int, error)
 	GetInstagramActivity(ctx context.Context, limit int) ([]any, error)
 }
+
+type BlogService interface {
+	GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
+}

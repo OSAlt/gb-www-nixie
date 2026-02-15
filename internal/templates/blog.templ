@@ -1,0 +1,101 @@
+package templates
+
+import (
+	"github.com/OSAlt/gb-www-nixie/internal/domain"
+	"strconv"
+)
+
+templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, currentPage, totalPages int) {
+	@Layout("NixiePixel - Blog") {
+		<section id="blog" class="py-5 mt-5">
+			<div class="container mt-5">
+				<h2 class="text-purple border-bottom border-purple pb-2 mb-4">Blog</h2>
+				<div class="row">
+					<div class="col-md-8">
+						if searchQuery != "" {
+							<div class="mb-4">
+								<h5 class="text-light">Search results for: <span class="text-purple">"{ searchQuery }"</span></h5>
+								<a href="/blog" class="text-muted small">Clear search</a>
+							</div>
+						}
+						if len(posts) == 0 {
+							<div class="alert alert-info bg-dark text-light border-blue">
+								No blog posts found matching your criteria.
+							</div>
+						} else {
+							for _, post := range posts {
+								<div class="card bg-dark text-light border-purple mb-4">
+									if post.ImageURL != "" {
+										<img src={ post.ImageURL } class="card-img-top" alt={ post.Title }/>
+									}
+									<div class="card-body">
+										<h3 class="card-title text-purple">{ post.Title }</h3>
+										if post.Author != "" {
+											<p class="text-muted mb-2"><small>By { post.Author } on { post.PublishedAt }</small></p>
+										} else {
+											<p class="text-muted mb-2"><small>Posted on { post.PublishedAt }</small></p>
+										}
+										if len(post.Categories) > 0 {
+											<p class="mb-2">
+												for _, cat := range post.Categories {
+													<a href={ templ.URL("/blog?q=" + cat) } class="badge bg-purple text-dark text-decoration-none me-1">{ cat }</a>
+												}
+											</p>
+										}
+										<div class="card-text mb-3">
+											@templ.Raw(post.Description)
+										</div>
+										<a href={ templ.URL(post.URL) } target="_blank" class="btn btn-outline-purple">Read More</a>
+									</div>
+								</div>
+							}
+
+							if totalPages > 1 {
+								<nav aria-label="Blog pagination">
+									<ul class="pagination justify-content-center mt-4">
+										<li class={ "page-item", templ.KV("disabled", currentPage <= 1) }>
+											<a class="page-link bg-dark text-purple border-purple" href={ templ.URL("/blog?page=" + strconv.Itoa(currentPage-1) + "&q=" + searchQuery) }>Previous</a>
+										</li>
+										for i := 1; i <= totalPages; i++ {
+											<li class={ "page-item", templ.KV("active", i == currentPage) }>
+												<a class={ "page-link border-purple", templ.KV("bg-purple text-dark", i == currentPage), templ.KV("bg-dark text-purple", i != currentPage) } href={ templ.URL("/blog?page=" + strconv.Itoa(i) + "&q=" + searchQuery) }>{ strconv.Itoa(i) }</a>
+											</li>
+										}
+										<li class={ "page-item", templ.KV("disabled", currentPage >= totalPages) }>
+											<a class="page-link bg-dark text-purple border-purple" href={ templ.URL("/blog?page=" + strconv.Itoa(currentPage+1) + "&q=" + searchQuery) }>Next</a>
+										</li>
+									</ul>
+								</nav>
+							}
+						}
+					</div>
+					<div class="col-md-4">
+						<div class="card bg-dark text-light border-purple mb-4">
+							<div class="card-body">
+								<h4 class="card-title text-purple">Search</h4>
+								<form action="/blog" method="GET">
+									<div class="input-group">
+										<input type="text" name="q" class="form-control bg-dark text-light border-purple" placeholder="Search posts..." value={ searchQuery }/>
+										<button class="btn btn-outline-purple" type="submit">Search</button>
+									</div>
+								</form>
+							</div>
+						</div>
+						if len(categories) > 0 {
+							<div class="card bg-dark text-light border-purple">
+								<div class="card-body">
+									<h4 class="card-title text-purple">Categories</h4>
+									<ul class="list-unstyled">
+										for _, cat := range categories {
+											<li><a href={ templ.URL("/blog?q=" + cat) } class="text-light text-decoration-none hover-purple">{ cat }</a></li>
+										}
+									</ul>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		</section>
+	}
+}

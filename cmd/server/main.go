@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/OSAlt/gb-www-nixie/internal/adapters/blog"
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/contact"
 	db_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/db"
 	http_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/http"
@@ -52,8 +53,9 @@ func main() {
 		}
 	}
 	contactSvc := contact.NewService(cfg, dbSvc)
+	blogSvc := blog.NewService(cfg)
 
-	h := http_adapter.NewHandler(mediaSvc, contactSvc, dbSvc)
+	h := http_adapter.NewHandler(mediaSvc, contactSvc, dbSvc, blogSvc, cfg)
 
 	// Routes
 	mux := http.NewServeMux()
@@ -63,6 +65,10 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	mux.HandleFunc("GET /{$}", h.Index)
+	mux.HandleFunc("GET /blog", h.Blog)
+	mux.HandleFunc("GET /faq", h.FAQ)
+	mux.HandleFunc("GET /portfolio", h.Portfolio)
+	mux.HandleFunc("GET /contact", h.Contact)
 
 	// API Routes
 	mux.HandleFunc("GET /api/v1/contact/list", h.APIListContacts)

@@ -1,0 +1,55 @@
+package templates
+
+templ Portfolio() {
+	@Layout("NixiePixel - Portfolio") {
+		<nav class="navbar navbar-expand navbar-dark bg-secondary sticky-top sub-nav">
+			<div class="container justify-content-center">
+				<ul class="navbar-nav">
+					<li class="nav-item"><a class="nav-link text-light" href="#gbf">GBF</a></li>
+					<li class="nav-item"><a class="nav-link text-light" href="#geekbeacon-portfolio">Geekbeacon</a></li>
+					<li class="nav-item"><a class="nav-link text-light" href="#product-reviews">Product Reviews</a></li>
+					<li class="nav-item"><a class="nav-link text-light" href="#testimonials">Testimonials</a></li>
+					<li class="nav-item"><a class="nav-link text-light" href="#newsletter">Newsletter</a></li>
+				</ul>
+			</div>
+		</nav>
+		<section id="portfolio-content" class="py-5">
+			<div class="container">
+				<div id="gbf" class="mb-5 py-5">
+					<h2 class="text-purple border-bottom border-purple pb-2">GBF (GeekBeacon Festival)</h2>
+					<p class="mt-3">GeekBeacon Festival is our flagship open-source conference. It brings together developers, enthusiasts, and advocates to share knowledge and build a better future through technology.</p>
+					<!-- Placeholder for GBF content -->
+				</div>
+				<div id="geekbeacon-portfolio" class="mb-5 py-5">
+					<h2 class="text-purple border-bottom border-purple pb-2">Geekbeacon</h2>
+					<div class="row justify-content-center justify-content-md-around mt-3">
+						<div class="col-10 col-md-5 text-center mb-3 mb-md-0 px-0 px-md-3">
+							<img src="/static/imgs/cubes.gif" alt="GeekBeacon Cubes" class="img-fluid rounded"/>
+						</div>
+						<div class="col-10 col-md-5 text-center text-md-left rounded">
+							<p class="text-light">
+							GeekBeacon is a worldwide community of geeks with a mission focused on building and growing our collective knowledge for the betterment of humanity. In a world with rapidly shifting sociopolitical, economic, and ecological climates we see the marginalized being pushed further to the margins. GeekBeacon strives to make tech and gaming more accessible with projects and research to find new adaptations and innovations. From coding tutorials to community game nights, from chat hangouts to mental health support groups, we draw geeks from all nerddoms together. Sharing information and experiences, guiding one another in creating a collective that strengthens and empowers with an ultimate goal of doing social good.
+							</p>
+							<p><a href="https://www.geekbeacon.org" target="_blank" class="btn btn-outline-purple mt-3">Visit GeekBeacon</a></p>
+						</div>
+					</div>
+				</div>
+				<div id="product-reviews" class="mb-5 py-5">
+					<h2 class="text-purple border-bottom border-purple pb-2">Product Reviews</h2>
+					<p class="mt-3">In-depth, honest reviews of technology and gaming gear, with a focus on value and open-source compatibility.</p>
+					<!-- Placeholder for Product Reviews content -->
+				</div>
+				<div id="testimonials" class="mb-5 py-5">
+					<h2 class="text-purple border-bottom border-purple pb-2">Testimonials</h2>
+					<p class="mt-3">What collaborators and sponsors have to say about working with Nixie Pixel.</p>
+					<!-- Placeholder for Testimonials content -->
+				</div>
+				<div id="newsletter" class="mb-5 py-5">
+					<h2 class="text-purple border-bottom border-purple pb-2">Newsletter</h2>
+					<p class="mt-3">Stay up to date with the latest projects, reviews, and community updates by subscribing to our newsletter.</p>
+					<!-- Placeholder for Newsletter content -->
+				</div>
+			</div>
+		</section>
+	}
+}

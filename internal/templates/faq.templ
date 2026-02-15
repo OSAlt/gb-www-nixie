@@ -1,0 +1,61 @@
+package templates
+
+templ FAQ() {
+	@Layout("NixiePixel - FAQ") {
+		<section id="faq" class="py-5">
+			<div class="container">
+				<h1 class="text-white text-center mt-5 mb-5">Frequently Asked Questions</h1>
+				<div class="accordion accordion-flush" id="faqAccordion">
+					<div class="accordion-item bg-dark text-light border-secondary">
+						<h2 class="accordion-header" id="headingOne">
+							<button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+								What is GeekBeacon?
+							</button>
+						</h2>
+						<div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+							<div class="accordion-body">
+								GeekBeacon is a worldwide community of geeks with a mission focused on building and growing our collective knowledge for the betterment of humanity. We strive to make tech and gaming more accessible with projects and research to find new adaptations and innovations.
+							</div>
+						</div>
+					</div>
+					<div class="accordion-item bg-dark text-light border-secondary">
+						<h2 class="accordion-header" id="headingTwo">
+							<button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+								How can I support Nixie Pixel?
+							</button>
+						</h2>
+						<div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+							<div class="accordion-body">
+								You can support Nixie by following her on social media, subscribing to her YouTube channel, or becoming a patron on Patreon. Engaging with the content and sharing it with others also helps tremendously!
+							</div>
+						</div>
+					</div>
+					<div class="accordion-item bg-dark text-light border-secondary">
+						<h2 class="accordion-header" id="headingThree">
+							<button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+								Where can I watch the content?
+							</button>
+						</h2>
+						<div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+							<div class="accordion-body">
+								You can find Nixie's content on YouTube, Twitch, and various social media platforms linked in the header of this site.
+							</div>
+						</div>
+					</div>
+					<div class="accordion-item bg-dark text-light border-secondary">
+						<h2 class="accordion-header" id="headingFour">
+							<button class="accordion-button collapsed bg-dark text-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+								How do I get in touch for business inquiries?
+							</button>
+						</h2>
+						<div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+							<div class="accordion-body">
+								Please use the contact form on the home page and select the appropriate subject (e.g., "Business Opportunity" or "Speaking Engagements").
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	}
+}

@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: nixie
+      POSTGRES_PASSWORD: nixie_password
+      POSTGRES_DB: nixiedb
+    ports:
+      - "5432:5432"
+    networks:
+      - dev_network
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+networks:
+  dev_network:
+    name: dev_network
+
+volumes:
+  db_data:
