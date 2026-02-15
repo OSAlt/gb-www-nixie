@@ -29,13 +29,12 @@ FROM alpine:latest
 
 WORKDIR /
 
-# Copy the binary from the builder stage
+# Copy the binaries from the builder stage
 COPY --from=builder /server /server
 
 # Copy static assets and migrations
 COPY --from=builder /app/static /static
 COPY --from=builder /app/db/migrations /db/migrations
-COPY --from=builder /app/tools /tools
 
 # Expose the port the app runs on
 EXPOSE 8080

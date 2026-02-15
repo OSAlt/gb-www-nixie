@@ -38,6 +38,21 @@ mage run
 
 The server will be available at `http://localhost:8080`.
 
+### Docker
+
+The project includes a `docker-compose.yaml` for production-like environments and `docker-developer.yaml` for local development.
+
+To start the application with a local database:
+```bash
+docker-compose up
+```
+
+#### External Database
+To connect to an external database, override the `DATABASE_URL` environment variable:
+```bash
+DATABASE_URL=postgres://user:pass@external_host:5432/dbname docker-compose up
+```
+
 ### HTMX Usage
 
 HTMX is included via CDN in the `Layout` component. Use `hx-` attributes in your templ components to trigger AJAX requests.

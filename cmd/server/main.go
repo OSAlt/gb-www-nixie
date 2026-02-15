@@ -35,6 +35,15 @@ func main() {
 	// Use real DB if DATABASE_URL is provided, otherwise mock
 	var dbSvc ports.DBService
 	if cfg.DatabaseURL != "" {
+		// Run migrations
+		migrationsDir := os.Getenv("MIGRATIONS_DIR")
+		if migrationsDir == "" {
+			migrationsDir = "db/migrations"
+		}
+		if err := db_adapter.RunMigrations(cfg.DatabaseURL, migrationsDir); err != nil {
+			fmt.Printf("Warning: Failed to run migrations: %v\n", err)
+		}
+
 		conn, err := pgx.Connect(context.Background(), cfg.DatabaseURL)
 		if err != nil {
 			fmt.Printf("Warning: Unable to connect to database: %v. Using mock DB.\n", err)
