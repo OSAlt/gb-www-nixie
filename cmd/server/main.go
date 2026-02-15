@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/OSAlt/gb-www-nixie/internal/adapters/contact"
+	db_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/db"
+	http_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/http"
+	"github.com/OSAlt/gb-www-nixie/internal/config"
+	"github.com/OSAlt/gb-www-nixie/internal/domain"
+	"github.com/OSAlt/gb-www-nixie/internal/ports"
 	"github.com/jackc/pgx/v5"
-	"github.com/osalt/nixiesite/internal/adapters/contact"
-	db_adapter "github.com/osalt/nixiesite/internal/adapters/db"
-	http_adapter "github.com/osalt/nixiesite/internal/adapters/http"
-	"github.com/osalt/nixiesite/internal/config"
-	"github.com/osalt/nixiesite/internal/domain"
-	"github.com/osalt/nixiesite/internal/ports"
 )
 
 // mockMediaService is still needed as no real media adapter exists yet

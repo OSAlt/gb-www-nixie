@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/osalt/nixiesite/internal/config"
-	"github.com/osalt/nixiesite/internal/ports"
+	"github.com/OSAlt/gb-www-nixie/internal/config"
+	"github.com/OSAlt/gb-www-nixie/internal/ports"
 )
 
 const defaultContactAPIURL = "https://social.geekbeacon.org/api/v1.0/contact/list"

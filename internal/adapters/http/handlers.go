@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/OSAlt/gb-www-nixie/internal/ports"
+	"github.com/OSAlt/gb-www-nixie/internal/templates"
 	"github.com/a-h/templ"
-	"github.com/osalt/nixiesite/internal/ports"
-	"github.com/osalt/nixiesite/internal/templates"
 )
 
 type Handler struct {

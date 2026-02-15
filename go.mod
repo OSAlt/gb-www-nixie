@@ -1,4 +1,4 @@
-module github.com/osalt/nixiesite
+module github.com/OSAlt/gb-www-nixie
 
 go 1.25.4
 

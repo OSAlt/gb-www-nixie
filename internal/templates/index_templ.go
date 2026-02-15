@@ -9,7 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/osalt/nixiesite/internal/domain"
+	"github.com/OSAlt/gb-www-nixie/internal/domain"
 )
 
 func Layout(title string) templ.Component {

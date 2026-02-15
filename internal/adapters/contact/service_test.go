@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/osalt/nixiesite/internal/config"
+	"github.com/OSAlt/gb-www-nixie/internal/config"
 )
 
 func TestService_GetSubjects(t *testing.T) {

@@ -3,7 +3,7 @@ package db
 import (
 	"context"
 
-	"github.com/osalt/nixiesite/internal/domain"
+	"github.com/OSAlt/gb-www-nixie/internal/domain"
 )
 
 type Adapter struct {
