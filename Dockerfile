@@ -26,18 +26,19 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /server ./cmd/server
 
 # Final stage
 FROM alpine:latest
+RUN apk add --no-cache ca-certificates
 
-WORKDIR /
+WORKDIR /app
 
 # Copy the binaries from the builder stage
-COPY --from=builder /server /server
+COPY --from=builder /server /app/server
 
 # Copy static assets and migrations
-COPY --from=builder /app/static /static
-COPY --from=builder /app/db/migrations /db/migrations
+COPY --from=builder /app/static /app/static
+COPY --from=builder /app/db/migrations /app/db/migrations
 
 # Expose the port the app runs on
 EXPOSE 8080
 
 # Command to run the application
-CMD ["/server"]
+CMD ["./server"]

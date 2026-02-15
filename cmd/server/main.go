@@ -55,20 +55,41 @@ func main() {
 
 	h := http_adapter.NewHandler(mediaSvc, contactSvc, dbSvc)
 
+	// Routes
+	mux := http.NewServeMux()
+
 	// Serve static files
 	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Routes
-	http.HandleFunc("/", h.Index)
+	mux.HandleFunc("GET /{$}", h.Index)
 
 	// API Routes
-	http.HandleFunc("/api/v1/contact/list", h.APIListContacts)
-	http.HandleFunc("/api/v1/social/count/all", h.APISocialCountAll)
-	http.HandleFunc("/api/v1/social/INSTAGRAM/activity", h.APISocialInstagramActivity)
+	mux.HandleFunc("GET /api/v1/contact/list", h.APIListContacts)
+	mux.HandleFunc("GET /api/v1/social/count/all", h.APISocialCountAll)
+	mux.HandleFunc("GET /api/v1/social/INSTAGRAM/activity", h.APISocialInstagramActivity)
+
+	// Catch-all for other routes
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	})
 
 	fmt.Printf("Server starting on http://localhost:%s\n", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, nil); err != nil {
+	cwd, _ := os.Getwd()
+	fmt.Printf("Current working directory: %s\n", cwd)
+	if _, err := os.Stat("static"); err != nil {
+		fmt.Printf("Error: static directory not found: %v\n", err)
+	} else {
+		fmt.Println("Static directory found")
+		files, _ := os.ReadDir("static")
+		fmt.Print("Contents of static: ")
+		for _, f := range files {
+			fmt.Printf("%s ", f.Name())
+		}
+		fmt.Println()
+	}
+
+	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 		os.Exit(1)
 	}
