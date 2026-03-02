@@ -58,24 +58,33 @@ header {
 }
 
 #intro {
-    height: calc(100vh - 96px); /* Adjusted for main header (56px) + sub-nav (40px approx) */
+    height: 55vh;
+    min-height: 300px;
     position: relative;
+    margin-top: 0;
 }
 
 #headerImg {
     background-image: url('/static/imgs/concept-intro-site.png');
     height: 100%;
-    background-attachment: fixed;
+    background-attachment: scroll;
     background-position: center;
     background-repeat: no-repeat;
-    background-size: contain;
+    background-size: cover;
+}
+
+@media (max-width: 768px) {
+    #intro {
+        height: 35vh;
+        min-height: 200px;
+    }
 }
 
 #intro .fa-chevron-down {
     position: absolute;
     bottom: 5%;
     left: 48%;
-    font-size: 5rem;
+    font-size: 2.5rem;
     color: rgba(225, 225, 225, 0.75);
 }
 
@@ -161,9 +170,12 @@ header {
     color: var(--black);
 }
 
+
 .sub-nav {
-    top: 56px; /* Height of the main sticky-top header */
-    z-index: 1019; /* Just below main header if needed */
+    top: 56px;
+    z-index: 1019;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
 }
 
 @media (max-width: 768px) {
