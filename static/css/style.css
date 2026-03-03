@@ -62,11 +62,16 @@ header {
     min-height: 300px;
     position: relative;
     margin-top: 0;
+    overflow: hidden;
 }
 
 #headerImg {
     background-image: url('/static/imgs/concept-intro-site.png');
-    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-attachment: scroll;
     background-position: center;
     background-repeat: no-repeat;
@@ -75,8 +80,17 @@ header {
 
 @media (max-width: 768px) {
     #intro {
-        height: 35vh;
-        min-height: 200px;
+        height: 220px;
+        min-height: unset;
+        background-image: url('/static/imgs/concept-intro-site.png');
+        background-attachment: scroll;
+        background-position: left center;
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+
+    #headerImg {
+        display: none;
     }
 }
 
