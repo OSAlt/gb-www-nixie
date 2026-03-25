@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/a-h/templ v0.3.977
-	github.com/magefile/mage v1.16.1
+	github.com/magefile/mage v1.17.0
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/sqlc-dev/sqlc v1.30.0
 )
