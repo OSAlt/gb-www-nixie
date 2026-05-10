@@ -3,7 +3,7 @@ module github.com/OSAlt/gb-www-nixie/tools
 go 1.26.3
 
 require (
-	github.com/a-h/templ v0.3.977
+	github.com/a-h/templ v0.3.1020
 	github.com/magefile/mage v1.17.2
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/sqlc-dev/sqlc v1.31.1
