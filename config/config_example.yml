@@ -1,0 +1,12 @@
+## Example config
+port: "8080"
+database_url: "" ## set this via env using DATABASE_URL
+blog_urls:
+  - https://www.geekbeacon.org/tag/tags/rss/
+  - https://www.geekbeacon.org/tag/bar/rss/
+  - https://www.geekbeacon.org/tag/foo/rss/
+
+newsletters:
+  - name: "geekbeacon"
+    description: "geekbeacon news and updates. Stay current with all the community news!"
+    url: "https://geekbeacon.org/#/portal"
