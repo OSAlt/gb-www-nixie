@@ -37,6 +37,10 @@ func TestSocial_RendersAllPlatforms(t *testing.T) {
 		t.Errorf("expected stats chart container on social page")
 	}
 
+	if !strings.Contains(body, `id="llama-hat-select"`) {
+		t.Errorf("expected holiday hat selector on social page")
+	}
+
 	if !strings.Contains(body, `id="curator-feed-default-feed-layout"`) {
 		t.Errorf("expected Curator feed container on social page")
 	}

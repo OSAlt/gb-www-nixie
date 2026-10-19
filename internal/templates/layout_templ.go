@@ -42,7 +42,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css\" rel=\"stylesheet\"><link rel=\"stylesheet\" href=\"/static/css/style.css?v=3\"><link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Comfortaa:400,700|Indie+Flower&display=swap\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><script src=\"https://unpkg.com/htmx.org@2.0.0\"></script><script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script></head><body class=\"container-fluid p-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</title><link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css\" rel=\"stylesheet\"><link rel=\"stylesheet\" href=\"/static/css/style.css?v=10\"><link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Comfortaa:400,700|Indie+Flower&display=swap\"><link rel=\"icon\" type=\"image/x-icon\" href=\"/static/favicon.ico\"><script src=\"https://unpkg.com/htmx.org@2.0.0\"></script><script src=\"https://code.jquery.com/jquery-3.6.0.min.js\"></script></head><body class=\"container-fluid p-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -58,7 +58,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script><script src=\"https://kit.fontawesome.com/4d9859e450.js\" crossorigin=\"anonymous\"></script><!-- amCharts for Stats --><script src=\"/static/js/core.js\"></script><script src=\"/static/js/charts.js\"></script><script src=\"/static/js/animated.js\"></script><script src=\"/static/js/stats.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script><script src=\"https://kit.fontawesome.com/4d9859e450.js\" crossorigin=\"anonymous\"></script><!-- amCharts for Stats --><script src=\"/static/js/core.js\"></script><script src=\"/static/js/charts.js\"></script><script src=\"/static/js/animated.js\"></script><script src=\"/static/js/stats.js?v=3\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

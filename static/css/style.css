@@ -215,6 +215,127 @@ header {
     z-index: -1;
 }
 
+@keyframes llama-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.llama-stage {
+    animation: llama-float 5s ease-in-out infinite;
+}
+
+#chart {
+    transition: transform 0.4s ease-out;
+}
+
+.llama-fx {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    transition: transform 0.4s ease-out;
+}
+
+.llama-hat {
+    position: absolute;
+    width: 10%;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -100%);
+}
+
+#stats #llama-fx .llama-hat {
+    height: auto;
+}
+
+.llama-hat svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.llama-pixel,
+.llama-dust {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-radius: 1px;
+}
+
+.llama-pixel {
+    animation: llama-burst 0.8s ease-out forwards;
+}
+
+.llama-dust {
+    width: 4px;
+    height: 4px;
+    margin: -2px 0 0 -2px;
+    animation: llama-dust-fall 2.5s linear forwards;
+}
+
+@keyframes llama-burst {
+    from { transform: translate(0, 0) scale(1); opacity: 1; }
+    to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+}
+
+@keyframes llama-dust-fall {
+    from { transform: translateY(0); opacity: 0.8; }
+    to { transform: translateY(70px); opacity: 0; }
+}
+
+.llama-walker {
+    position: fixed;
+    bottom: 16px;
+    left: -90px;
+    width: 72px;
+    height: 72px;
+    pointer-events: none;
+    z-index: 1030;
+    transform-origin: 50% 100%;
+    transition: transform 0.7s ease-in-out;
+    animation: llama-walk 14s linear forwards;
+}
+
+.llama-walker.looking {
+    transform: rotate(-14deg) scale(1.08);
+}
+
+.llama-walker.looking svg {
+    animation: none;
+}
+
+.llama-walker svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    animation: llama-step 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes llama-step {
+    from { transform: translateY(0); }
+    to { transform: translateY(-3px); }
+}
+
+@keyframes llama-walk {
+    0% { left: -90px; }
+    30% { left: calc(50% - 36px); }
+    72% { left: calc(50% - 36px); }
+    100% { left: 105vw; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .llama-stage,
+    .llama-walker {
+        animation: none;
+    }
+
+    .llama-walker {
+        display: none;
+    }
+}
+
 #toTop {
     display: none;
     position: fixed;
