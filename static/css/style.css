@@ -114,6 +114,60 @@ header {
     color: var(--white);
 }
 
+.about-card {
+    --accent: var(--purple);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 4px solid var(--accent);
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.about-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), 0 0 16px var(--accent);
+}
+
+.about-card-purple { --accent: var(--purple); }
+.about-card-blue { --accent: var(--blue); }
+.about-card-green { --accent: var(--green); }
+.about-card-pink { --accent: var(--pink); }
+
+.about-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+}
+
+.about-badge-purple { background-color: var(--purple); }
+.about-badge-blue { background-color: var(--blue); }
+.about-badge-green { background-color: var(--green); }
+.about-badge-pink { background-color: var(--pink); }
+
+.about-tags {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+#about .about-tags li {
+    background-color: transparent;
+    color: var(--light);
+    border: 1px solid var(--green);
+    border-radius: 999px;
+    padding: 0.15rem 0.75rem;
+    font-size: 0.95rem;
+}
+
 #stats {
     background-color: rgba(0,0,0,0.5);
     position: relative;

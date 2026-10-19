@@ -13,7 +13,7 @@ services:
     volumes:
       - ./db/migrations:/app/db/migrations
       - ./config:/app/config/
-      - ./static:/app/static
+#     - ./static:/app/static
 
 
 networks:
