@@ -114,6 +114,10 @@ func (h *Handler) FAQ(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(templates.FAQ()).ServeHTTP(w, r)
 }
 
+func (h *Handler) Social(w http.ResponseWriter, r *http.Request) {
+	templ.Handler(templates.SocialPage()).ServeHTTP(w, r)
+}
+
 func (h *Handler) Portfolio(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(templates.Portfolio()).ServeHTTP(w, r)
 }

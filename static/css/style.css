@@ -62,8 +62,7 @@ header {
 }
 
 #intro {
-    height: 55vh;
-    min-height: 300px;
+    aspect-ratio: 2000 / 761;
     position: relative;
     margin-top: 0;
     overflow: hidden;

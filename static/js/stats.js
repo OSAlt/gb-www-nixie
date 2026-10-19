@@ -23,7 +23,7 @@ fetch(`https://social.geekbeacon.org/api/v1.0/social/count/all`)
 
 /* Stats Chart */
 function makeChart() {
-    if (typeof am4core === 'undefined') return;
+    if (typeof am4core === 'undefined' || !document.getElementById('chart')) return;
 
     am4core.useTheme(am4themes_animated); //use animations
     let chart = am4core.create("chart", am4charts.SlicedChart); //create base sliced chart

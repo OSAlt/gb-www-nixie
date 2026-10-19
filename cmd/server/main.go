@@ -69,6 +69,7 @@ func main() {
 	mux.HandleFunc("GET /faq", h.FAQ)
 	mux.HandleFunc("GET /portfolio", h.Portfolio)
 	mux.HandleFunc("GET /contact", h.Contact)
+	mux.HandleFunc("GET /social", h.Social)
 
 	// API Routes
 	mux.HandleFunc("GET /api/v1/contact/list", h.APIListContacts)

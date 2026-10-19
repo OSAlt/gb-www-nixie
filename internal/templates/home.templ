@@ -8,25 +8,12 @@ templ Index(media []domain.MediaPost, subjects []string) {
 	@Layout("NixiePixel") {
 		<a id="toTop" href="#" class="btn btn-light"><i class="fas fa-angle-double-up"></i></a>
 
-		<nav class="navbar navbar-expand navbar-dark bg-secondary sticky-top sub-nav">
-			<div class="container justify-content-center">
-				<ul class="navbar-nav">
-					<li class="nav-item"><a class="nav-link text-light" href="#about">About</a></li>
-					<li class="nav-item"><a class="nav-link text-light" href="#stats">Stats</a></li>
-					<li class="nav-item"><a class="nav-link text-light" href="#media">Media</a></li>
-					<li class="nav-item"><a class="nav-link text-light" href="/contact">Contact</a></li>
-				</ul>
-			</div>
-		</nav>
-
 		<section id="intro">
 			<div id="headerImg"></div>
 			<a href="#about"><span class="fas fa-chevron-down"></span></a>
 		</section>
 
 		@About()
-		@Media(media)
-		@Stats()
 	}
 }
 
@@ -86,26 +73,6 @@ templ About() {
 				<p>&bull; Founded Equiti Games, An alternative distribution for games.</p>
 			</li>
 		</ul>
-	</section>
-}
-
-templ Media(media []domain.MediaPost) {
-	<section id="media" class="pb-4 pt-5">
-		<h1 class="text-white text-center mt-3 mb-4">Check Out My Social Feed!</h1>
-		<!-- Place <div> tag where you want the feed to appear -->
-		<div id="curator-feed-default-feed-layout"><a href="https://curator.io" target="_blank" class="crt-logo crt-tag">Powered by Curator.io</a></div>
-		<!-- The Javascript can be moved to the end of the html page before the </body> tag -->
-		<script type="text/javascript" src="https://cdn.curator.io/published/665652c2-9507-4961-9372-637c95380d14.js" async charset="UTF-8"></script>
-	</section>
-}
-
-templ Stats() {
-	<section id="stats" class="pt-5">
-		<h1 class="text-white text-center mt-3 mb-4">Some Of My Stats!</h1>
-		<p class="text-white text-center mt-3 mb-4">Click/tap a platform to toggle visibility!<br/><span>Hover/tap the llama to view numbers!</span></p>
-		<div class="position-relative col-10 mx-auto">
-			<div id="chart" class="h-100 w-100"></div>
-		</div>
 	</section>
 }
 
