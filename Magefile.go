@@ -50,7 +50,7 @@ func Generate() error {
 // Mocks regenerates the interface mocks used by the tests.
 func Mocks() error {
 	fmt.Println("Generating mocks...")
-	cmd := exec.Command("go", "run", "-modfile", "tools/go.mod", "github.com/vektra/mockery/v2", "--config", ".mockery.yaml")
+	cmd := exec.Command("go", "run", "-modfile", "tools/go.mod", "github.com/vektra/mockery/v3", "--config", ".mockery.yaml")
 	cmd.Dir = "."
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

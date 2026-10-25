@@ -1,13 +1,13 @@
 # Regenerate with `mage mocks` (or `mage generate`).
 # Mocks live in internal/mocks and replace hand-written test doubles.
-with-expecter: true
-resolve-type-alias: false
-disable-version-string: true
-issue-845-fix: true
+# Config format: mockery v3 (https://vektra.github.io/mockery/v3/).
+template: testify
+template-data:
+  unroll-variadic: true
 dir: "internal/mocks"
-outpkg: "mocks"
+pkgname: "mocks"
 filename: "mock_{{.InterfaceName}}.go"
-mockname: "Mock{{.InterfaceName}}"
+structname: "Mock{{.InterfaceName}}"
 packages:
   github.com/OSAlt/gb-www-nixie/internal/ports:
     interfaces:
