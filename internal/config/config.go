@@ -57,8 +57,10 @@ func Load() (*Config, error) {
 
 	// Load environment variables with a prefix if needed, or just all
 	// Here we use NIXIE_ prefix and replace __ with . for nested structures if we had any
-	err := k.Load(env.Provider("", ".", func(s string) string {
-		return strings.ToLower(s)
+	err := k.Load(env.Provider(".", env.Opt{
+		TransformFunc: func(key, value string) (string, any) {
+			return strings.ToLower(key), value
+		},
 	}), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error loading env: %w", err)

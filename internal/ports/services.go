@@ -25,7 +25,6 @@ type DBService interface {
 	// LastSocialRefresh is the newest refreshed_at across all platforms; it
 	// lets the worker skip a boot fetch when stored data is still fresh.
 	LastSocialRefresh(ctx context.Context) (time.Time, error)
-	GetInstagramActivity(ctx context.Context, limit int) ([]any, error)
 }
 
 type BlogService interface {

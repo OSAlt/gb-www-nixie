@@ -236,18 +236,3 @@ func (h *Handler) APISocialHealth(w http.ResponseWriter, r *http.Request) {
 		"platforms":           platforms,
 	})
 }
-
-func (h *Handler) APISocialInstagramActivity(w http.ResponseWriter, r *http.Request) {
-	countStr := r.URL.Query().Get("count")
-	count, err := strconv.Atoi(countStr)
-	if err != nil {
-		count = 20
-	}
-	activity, err := h.dbService.GetInstagramActivity(r.Context(), count)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(activity)
-}

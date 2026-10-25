@@ -1,7 +1,7 @@
 
 /* Define variables to hold social following counts */
 let data;
-let fallbackData = {'facebook' : 41655, 'twitch' : 2500, 'twitter' : 31102, 'instagram' : 7498, 'youtube' : 202000, 'discord' : 6336, 'tiktok' : 3615};
+let fallbackData = {'facebook' : 41655, 'twitch' : 2595, 'twitter' : 26000, 'instagram' : 18000, 'youtube' : 304000, 'discord' : 5425, 'tiktok' : 3616};
 
 function fetchCounts(url) {
     return fetch(url).then(function (response) {

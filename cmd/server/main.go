@@ -87,7 +87,6 @@ func main() {
 	mux.HandleFunc("GET /api/v1/contact/list", h.APIListContacts)
 	mux.HandleFunc("GET /api/v1/social/count/all", h.APISocialCountAll)
 	mux.HandleFunc("GET /api/v1/social/health", h.APISocialHealth)
-	mux.HandleFunc("GET /api/v1/social/INSTAGRAM/activity", h.APISocialInstagramActivity)
 
 	// Catch-all for other routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

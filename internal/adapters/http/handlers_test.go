@@ -77,10 +77,6 @@ func (s stubSocialDB) LastSocialRefresh(context.Context) (time.Time, error) {
 	return time.Time{}, nil
 }
 
-func (s stubSocialDB) GetInstagramActivity(context.Context, int) ([]any, error) {
-	return nil, nil
-}
-
 type socialHealthBody struct {
 	Status         string   `json:"status"`
 	StalePlatforms []string `json:"stale_platforms"`

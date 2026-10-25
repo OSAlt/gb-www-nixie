@@ -86,9 +86,3 @@ func (a *Adapter) LastSocialRefresh(ctx context.Context) (time.Time, error) {
 	}
 	return ts.Time, nil
 }
-
-func (a *Adapter) GetInstagramActivity(ctx context.Context, limit int) ([]any, error) {
-	// Re-implementing file-based instagram activity from oldapi as a placeholder
-	// In a real scenario, this would fetch from DB or a cache updated by a worker
-	return []any{}, nil
-}
