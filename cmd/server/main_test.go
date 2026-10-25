@@ -36,16 +36,6 @@ func TestSplitNonEmpty(t *testing.T) {
 	}
 }
 
-func TestMockMediaService(t *testing.T) {
-	posts, err := (&mockMediaService{}).GetRecentPosts(context.Background(), 6)
-	if err != nil {
-		t.Fatalf("GetRecentPosts: %v", err)
-	}
-	if len(posts) != 0 {
-		t.Errorf("got %d posts, want none", len(posts))
-	}
-}
-
 func TestNewSocialAggregator(t *testing.T) {
 	tests := []struct {
 		name string

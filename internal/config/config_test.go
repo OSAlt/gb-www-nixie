@@ -85,6 +85,9 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.SocialRefreshSeconds != 86400 {
 		t.Errorf("SocialRefreshSeconds = %d, want 86400", cfg.SocialRefreshSeconds)
 	}
+	if len(cfg.MediaFeedURLs) != 2 {
+		t.Errorf("MediaFeedURLs = %v, want the two default channel feeds", cfg.MediaFeedURLs)
+	}
 }
 
 func TestLoad_NonPositiveRefreshFallsBackToDaily(t *testing.T) {

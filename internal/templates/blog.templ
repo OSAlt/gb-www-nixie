@@ -11,24 +11,28 @@ templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, cur
 		"Linux, open-source and gaming write-ups from Nixie Pixel, plus coverage from around the tech web.",
 		"/blog",
 	) {
-		<section id="blog" class="py-5 mt-5">
-			<div class="container mt-5">
-				<h2 class="text-purple border-bottom border-purple pb-2 mb-4">Blog</h2>
-				<div class="row">
+		<section id="blog" class="py-5">
+			<div class="container">
+				<div class="page-intro">
+					<p class="eyebrow">WRITING</p>
+					<h1 class="page-title">Blog</h1>
+					<p class="section-lead">Linux, open-source and gaming write-ups, plus coverage from around the tech web.</p>
+				</div>
+				<div class="row mt-5">
 					<div class="col-md-8">
 						if searchQuery != "" {
 							<div class="mb-4">
-								<h5 class="text-light">Search results for: <span class="text-purple">"{ searchQuery }"</span></h5>
+								<h2 class="h5">Search results for: <span class="text-purple">"{ searchQuery }"</span></h2>
 								<a href="/blog" class="text-muted small">Clear search</a>
 							</div>
 						}
 						if len(posts) == 0 {
-							<div class="alert alert-info bg-dark text-light border-blue">
+							<div class="alert alert-info">
 								No blog posts found matching your criteria.
 							</div>
 						} else {
 							for _, post := range posts {
-								<div class="card bg-dark text-light border-purple mb-4">
+								<div class="card mb-4">
 									if post.ImageURL != "" {
 										<img src={ post.ImageURL } class="card-img-top" alt={ post.Title } loading="lazy"/>
 									}
@@ -49,7 +53,7 @@ templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, cur
 										<div class="card-text mb-3">
 											@templ.Raw(post.Description)
 										</div>
-										<a href={ templ.URL(post.URL) } target="_blank" class="btn btn-outline-purple">Read More</a>
+										<a href={ templ.URL(post.URL) } target="_blank" class="btn btn-ghost">Read More</a>
 									</div>
 								</div>
 							}
@@ -58,15 +62,15 @@ templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, cur
 								<nav aria-label="Blog pagination">
 									<ul class="pagination justify-content-center mt-4">
 										<li class={ "page-item", templ.KV("disabled", currentPage <= 1) }>
-											<a class="page-link bg-dark text-purple border-purple" href={ templ.URL("/blog?page=" + strconv.Itoa(currentPage-1) + "&q=" + searchQuery) }>Previous</a>
+											<a class="page-link" href={ templ.URL("/blog?page=" + strconv.Itoa(currentPage-1) + "&q=" + searchQuery) }>Previous</a>
 										</li>
 										for i := 1; i <= totalPages; i++ {
 											<li class={ "page-item", templ.KV("active", i == currentPage) }>
-												<a class={ "page-link border-purple", templ.KV("bg-purple text-dark", i == currentPage), templ.KV("bg-dark text-purple", i != currentPage) } href={ templ.URL("/blog?page=" + strconv.Itoa(i) + "&q=" + searchQuery) }>{ strconv.Itoa(i) }</a>
+												<a class="page-link" href={ templ.URL("/blog?page=" + strconv.Itoa(i) + "&q=" + searchQuery) }>{ strconv.Itoa(i) }</a>
 											</li>
 										}
 										<li class={ "page-item", templ.KV("disabled", currentPage >= totalPages) }>
-											<a class="page-link bg-dark text-purple border-purple" href={ templ.URL("/blog?page=" + strconv.Itoa(currentPage+1) + "&q=" + searchQuery) }>Next</a>
+											<a class="page-link" href={ templ.URL("/blog?page=" + strconv.Itoa(currentPage+1) + "&q=" + searchQuery) }>Next</a>
 										</li>
 									</ul>
 								</nav>
@@ -74,19 +78,19 @@ templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, cur
 						}
 					</div>
 					<div class="col-md-4">
-						<div class="card bg-dark text-light border-purple mb-4">
+						<div class="card mb-4">
 							<div class="card-body">
 								<h4 class="card-title text-purple">Search</h4>
 								<form action="/blog" method="GET">
 									<div class="input-group">
-										<input type="text" name="q" class="form-control bg-dark text-light border-purple" placeholder="Search posts..." value={ searchQuery }/>
-										<button class="btn btn-outline-purple" type="submit">Search</button>
+										<input type="text" name="q" class="form-control" placeholder="Search posts..." value={ searchQuery }/>
+										<button class="btn btn-cta" type="submit">Search</button>
 									</div>
 								</form>
 							</div>
 						</div>
 						if len(categories) > 0 {
-							<div class="card bg-dark text-light border-purple">
+							<div class="card">
 								<div class="card-body">
 									<h4 class="card-title text-purple">Categories</h4>
 									<ul class="list-unstyled">

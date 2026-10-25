@@ -25,7 +25,7 @@ func TestLayout(t *testing.T) {
 	for _, want := range []string{
 		"<!doctype html>",
 		"<title>NixiePixel - Test</title>",
-		`href="/static/css/style.css?v=13"`,
+		`href="/static/css/style.css?v=17"`,
 		`href="/blog"`,
 		`id="socialWeb"`,
 		`name="description" content="A test description."`,

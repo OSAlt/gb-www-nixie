@@ -10,6 +10,12 @@ blog_urls:
   # Currently returns 404; the blog logs a warning and skips it until it exists.
   - https://www.geekbeacon.org/tag/pixelplayback/rss/
 
+# Latest videos on the home page. The YouTube Data API is used when
+# YOUTUBE_API_KEY is set; otherwise these public feeds are tried.
+# media_feed_urls:
+#   - https://www.youtube.com/feeds/videos.xml?channel_id=UCMyAVYPgP_179gj9OIJZd4A
+#   - https://www.youtube.com/feeds/videos.xml?channel_id=UCBE-FO9JUOghSysV9gjTeHw
+
 newsletters:
   - name: "geekbeacon"
     description: "geekbeacon news and updates. Stay current with all the community news!"
