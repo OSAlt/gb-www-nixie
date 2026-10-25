@@ -23,7 +23,13 @@ func RunMigrations(databaseURL string, migrationsDir string) error {
 	goose.SetDialect("postgres")
 	goose.SetTableName("nixie.goose_db_version")
 
-	if err := goose.Up(db, migrationsDir); err != nil {
+	// Deployed databases can record a migration version that no longer matches
+	// the checked-in filenames (for example after a migration was renamed), which
+	// otherwise blocks startup with "found N missing migrations before current
+	// version". Allow missing migrations so newer files still apply; the last
+	// migration is written defensively (CREATE/DROP IF [NOT] EXISTS) so it is
+	// safe when its objects already exist.
+	if err := goose.Up(db, migrationsDir, goose.WithAllowMissing()); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

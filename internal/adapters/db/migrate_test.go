@@ -100,6 +100,74 @@ func TestRunMigrations_AppliesAllMigrations(t *testing.T) {
 	}
 }
 
+// TestRunMigrations_AppliesMigrationBehindNewerVersion reproduces a deployed
+// database that recorded a newer migration version than the checked-in files
+// while the last migration's version was never recorded. Startup must replay
+// 002's real SQL without failing on the objects it already created.
+func TestRunMigrations_AppliesMigrationBehindNewerVersion(t *testing.T) {
+	dsn := newDatabase(t)
+
+	// Replay the real migrations from db/migrations.
+	if err := RunMigrations(dsn, migrationsDir()); err != nil {
+		t.Fatalf("initial RunMigrations: %v", err)
+	}
+	db := openSQL(t, dsn)
+	ctx := context.Background()
+
+	// Keep a marker so we can prove the replayed seed does not overwrite data.
+	if _, err := db.ExecContext(ctx,
+		`UPDATE nixie.social_metrics SET followers = 999999 WHERE platform = 'youtube'`); err != nil {
+		t.Fatalf("mark existing row: %v", err)
+	}
+
+	// The deployed database recorded a migration version newer than any
+	// checked-in file and never recorded 002 under its current version.
+	const legacyVersion = int64(20260215054924)
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO nixie.goose_db_version (version_id, is_applied) VALUES ($1, true)`,
+		legacyVersion); err != nil {
+		t.Fatalf("record legacy version: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`DELETE FROM nixie.goose_db_version WHERE version_id = $1`, latestMigration); err != nil {
+		t.Fatalf("forget migration %d: %v", latestMigration, err)
+	}
+
+	// Without allow-missing this is where goose reports "found 1 missing
+	// migrations before current version".
+	if err := RunMigrations(dsn, migrationsDir()); err != nil {
+		t.Fatalf("RunMigrations with a newer recorded version: %v", err)
+	}
+
+	var applied bool
+	if err := db.QueryRowContext(ctx,
+		`SELECT is_applied FROM nixie.goose_db_version WHERE version_id = $1`,
+		latestMigration).Scan(&applied); err != nil {
+		t.Fatalf("read migration %d: %v", latestMigration, err)
+	}
+	if !applied {
+		t.Errorf("migration %d was not recorded as applied", latestMigration)
+	}
+
+	// The replayed 002 must tolerate the existing table and rows.
+	var youtube int
+	if err := db.QueryRowContext(ctx,
+		`SELECT followers FROM nixie.social_metrics WHERE platform = 'youtube'`).Scan(&youtube); err != nil {
+		t.Fatalf("read youtube followers: %v", err)
+	}
+	if youtube != 999999 {
+		t.Errorf("replayed seed overwrote existing data: got %d, want 999999", youtube)
+	}
+
+	var platforms int
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM nixie.social_metrics`).Scan(&platforms); err != nil {
+		t.Fatalf("count seeded metrics: %v", err)
+	}
+	if platforms != seededPlatformRows {
+		t.Errorf("got %d seeded platforms, want %d", platforms, seededPlatformRows)
+	}
+}
+
 // TestRunMigrations_RollbackLatestMigration verifies that the most recent
 // migration has a working Down section: rolling it back removes only the
 // objects it created, leaves migration 001 in place, and can be re-applied.

@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE nixie.social_metrics (
+CREATE TABLE IF NOT EXISTS nixie.social_metrics (
     platform TEXT PRIMARY KEY,
     followers BIGINT NOT NULL,
     refreshed_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -28,5 +28,5 @@ ON CONFLICT DO NOTHING;
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE nixie.social_metrics;
+DROP TABLE IF EXISTS nixie.social_metrics;
 -- +goose StatementEnd
