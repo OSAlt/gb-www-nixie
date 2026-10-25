@@ -25,6 +25,10 @@ type Config struct {
 	MediaFeedURLs []string     `koanf:"media_feed_urls"`
 	Newsletters   []Newsletter `koanf:"newsletters"`
 
+	// MediaRefreshSeconds controls how often the background job refreshes the
+	// shared video cache. It is also the cache TTL.
+	MediaRefreshSeconds int `koanf:"media_refresh_seconds"`
+
 	// Social follower-count metrics (see doc/social_migration.md).
 	// Metrika consolidates every platform behind one free API key. When it is
 	// configured it is the primary source; the per-platform adapters below
@@ -93,6 +97,12 @@ func Load() (*Config, error) {
 			"https://www.youtube.com/feeds/videos.xml?channel_id=UCMyAVYPgP_179gj9OIJZd4A",
 			"https://www.youtube.com/feeds/videos.xml?channel_id=UCBE-FO9JUOghSysV9gjTeHw",
 		}
+	}
+
+	// The home page tolerates half-hour-old videos, and each refresh costs two
+	// YouTube Data API calls.
+	if cfg.MediaRefreshSeconds <= 0 {
+		cfg.MediaRefreshSeconds = 1800
 	}
 
 	// Social metrics defaults

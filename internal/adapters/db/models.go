@@ -29,13 +29,6 @@ type ConfigUserSocial struct {
 	SecretToken  pgtype.Text
 }
 
-type GooseDbVersion struct {
-	ID        int32
-	VersionID int64
-	IsApplied bool
-	Tstamp    pgtype.Timestamp
-}
-
 type NixieContactForm struct {
 	ContactFormID int64
 	Email         string
@@ -48,6 +41,13 @@ type NixieGooseDbVersion struct {
 	VersionID int64
 	IsApplied bool
 	Tstamp    pgtype.Timestamp
+}
+
+type NixieMediaCache struct {
+	Key       string
+	Payload   []byte
+	FetchedAt pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
 }
 
 type NixieSocialMetric struct {

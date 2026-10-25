@@ -26,3 +26,17 @@ ON CONFLICT (platform) DO UPDATE
 -- name: LastSocialRefresh :one
 SELECT COALESCE(max(refreshed_at), 'epoch'::timestamptz)::timestamptz AS refreshed_at
 FROM nixie.social_metrics;
+
+-- name: GetMediaCache :one
+SELECT payload, fetched_at, expires_at
+FROM nixie.media_cache
+WHERE key = $1;
+
+-- name: UpsertMediaCache :exec
+INSERT INTO nixie.media_cache (key, payload, fetched_at, expires_at)
+VALUES ($1, $2, now(), $3)
+ON CONFLICT (key) DO UPDATE
+    SET payload = EXCLUDED.payload,
+        fetched_at = EXCLUDED.fetched_at,
+        expires_at = EXCLUDED.expires_at;
+

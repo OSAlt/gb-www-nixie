@@ -5,17 +5,18 @@ import (
 	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Adapter struct {
 	queries *Queries
-	db      DBTX
+	pool    *pgxpool.Pool
 }
 
-func NewAdapter(db DBTX) *Adapter {
+func NewAdapter(pool *pgxpool.Pool) *Adapter {
 	return &Adapter{
-		queries: New(db),
-		db:      db,
+		queries: New(pool),
+		pool:    pool,
 	}
 }
 

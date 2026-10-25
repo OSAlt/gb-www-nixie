@@ -14,6 +14,7 @@ import (
 
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
@@ -140,7 +141,7 @@ func openSQL(t *testing.T, dsn string) *sql.DB {
 func resetData(t *testing.T) {
 	t.Helper()
 	db := openSQL(t, requireDB(t))
-	_, err := db.Exec(`TRUNCATE nixie.contact_form, nixie.social_metrics, config.user_social, config.social_app RESTART IDENTITY CASCADE`)
+	_, err := db.Exec(`TRUNCATE nixie.contact_form, nixie.social_metrics, nixie.media_cache, config.user_social, config.social_app RESTART IDENTITY CASCADE`)
 	if err != nil {
 		t.Fatalf("truncate: %v", err)
 	}
@@ -148,13 +149,18 @@ func resetData(t *testing.T) {
 
 func newAdapter(t *testing.T) *Adapter {
 	t.Helper()
-	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, requireDB(t))
+	return NewAdapter(newPool(t))
+}
+
+// newPool opens a connection pool for tests that need transactions.
+func newPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	pool, err := pgxpool.New(context.Background(), requireDB(t))
 	if err != nil {
-		t.Fatalf("pgx.Connect: %v", err)
+		t.Fatalf("pgxpool.New: %v", err)
 	}
-	t.Cleanup(func() { _ = conn.Close(context.Background()) })
-	return NewAdapter(conn)
+	t.Cleanup(pool.Close)
+	return pool
 }
 
 func cancelledContext() context.Context {
@@ -342,24 +348,20 @@ func TestAdapter_LastSocialRefresh_CancelledContext(t *testing.T) {
 func TestAdapter_WithTx(t *testing.T) {
 	resetData(t)
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, requireDB(t))
-	if err != nil {
-		t.Fatalf("pgx.Connect: %v", err)
-	}
-	defer func() { _ = conn.Close(ctx) }()
+	pool := newPool(t)
 
-	tx, err := conn.Begin(ctx)
+	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
-	if err := New(conn).WithTx(tx).UpsertSocialCount(ctx, UpsertSocialCountParams{Platform: "rolled-back", Followers: 1}); err != nil {
+	if err := New(pool).WithTx(tx).UpsertSocialCount(ctx, UpsertSocialCountParams{Platform: "rolled-back", Followers: 1}); err != nil {
 		t.Fatalf("upsert in tx: %v", err)
 	}
 	if err := tx.Rollback(ctx); err != nil {
 		t.Fatalf("rollback: %v", err)
 	}
 
-	counts, err := NewAdapter(conn).GetSocialCounts(ctx)
+	counts, err := NewAdapter(pool).GetSocialCounts(ctx)
 	if err != nil {
 		t.Fatalf("GetSocialCounts: %v", err)
 	}
