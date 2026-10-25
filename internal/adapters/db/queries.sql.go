@@ -11,21 +11,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getMediaCache = `-- name: GetMediaCache :one
+const getContentCache = `-- name: GetContentCache :one
 SELECT payload, fetched_at, expires_at
-FROM nixie.media_cache
+FROM nixie.content_cache
 WHERE key = $1
 `
 
-type GetMediaCacheRow struct {
+type GetContentCacheRow struct {
 	Payload   []byte
 	FetchedAt pgtype.Timestamptz
 	ExpiresAt pgtype.Timestamptz
 }
 
-func (q *Queries) GetMediaCache(ctx context.Context, key string) (GetMediaCacheRow, error) {
-	row := q.db.QueryRow(ctx, getMediaCache, key)
-	var i GetMediaCacheRow
+func (q *Queries) GetContentCache(ctx context.Context, key string) (GetContentCacheRow, error) {
+	row := q.db.QueryRow(ctx, getContentCache, key)
+	var i GetContentCacheRow
 	err := row.Scan(&i.Payload, &i.FetchedAt, &i.ExpiresAt)
 	return i, err
 }
@@ -163,8 +163,8 @@ func (q *Queries) ListSocialApps(ctx context.Context) ([]ConfigSocialApp, error)
 	return items, nil
 }
 
-const upsertMediaCache = `-- name: UpsertMediaCache :exec
-INSERT INTO nixie.media_cache (key, payload, fetched_at, expires_at)
+const upsertContentCache = `-- name: UpsertContentCache :exec
+INSERT INTO nixie.content_cache (key, payload, fetched_at, expires_at)
 VALUES ($1, $2, now(), $3)
 ON CONFLICT (key) DO UPDATE
     SET payload = EXCLUDED.payload,
@@ -172,14 +172,14 @@ ON CONFLICT (key) DO UPDATE
         expires_at = EXCLUDED.expires_at
 `
 
-type UpsertMediaCacheParams struct {
+type UpsertContentCacheParams struct {
 	Key       string
 	Payload   []byte
 	ExpiresAt pgtype.Timestamptz
 }
 
-func (q *Queries) UpsertMediaCache(ctx context.Context, arg UpsertMediaCacheParams) error {
-	_, err := q.db.Exec(ctx, upsertMediaCache, arg.Key, arg.Payload, arg.ExpiresAt)
+func (q *Queries) UpsertContentCache(ctx context.Context, arg UpsertContentCacheParams) error {
+	_, err := q.db.Exec(ctx, upsertContentCache, arg.Key, arg.Payload, arg.ExpiresAt)
 	return err
 }
 

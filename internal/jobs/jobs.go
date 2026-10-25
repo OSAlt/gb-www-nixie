@@ -19,11 +19,13 @@ const DefaultQueueMaxWorkers = 4
 // Deps is everything the workers need. Fields may be nil: a job whose
 // dependency is missing is simply not registered.
 type Deps struct {
-	Config         *config.Config
-	DB             ports.DBService
-	UnitOfWork     ports.UnitOfWork
-	SocialFetcher  *social.Aggregator
-	MediaRefresher ports.MediaRefresher
+	Config           *config.Config
+	DB               ports.DBService
+	UnitOfWork       ports.UnitOfWork
+	SocialFetcher    *social.Aggregator
+	MediaRefresher   ports.MediaRefresher
+	BlogRefresher    ports.BlogRefresher
+	ContactRefresher ports.ContactRefresher
 }
 
 // NewWorkers registers every available worker.
@@ -44,6 +46,22 @@ func NewWorkers(deps Deps) (*river.Workers, error) {
 	if deps.Config != nil && deps.MediaRefresher != nil {
 		if err := river.AddWorkerSafely(workers, &MediaRefreshWorker{
 			Refresher: deps.MediaRefresher,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	if deps.Config != nil && deps.BlogRefresher != nil {
+		if err := river.AddWorkerSafely(workers, &BlogRefreshWorker{
+			Refresher: deps.BlogRefresher,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	if deps.Config != nil && deps.ContactRefresher != nil {
+		if err := river.AddWorkerSafely(workers, &ContactRefreshWorker{
+			Refresher: deps.ContactRefresher,
 		}); err != nil {
 			return nil, err
 		}
@@ -83,6 +101,34 @@ func PeriodicJobs(deps Deps) []*river.PeriodicJob {
 			river.PeriodicInterval(interval),
 			func() (river.JobArgs, *river.InsertOpts) {
 				return MediaRefreshArgs{}, &river.InsertOpts{
+					MaxAttempts: 3,
+					UniqueOpts:  river.UniqueOpts{ByPeriod: interval},
+				}
+			},
+			&river.PeriodicJobOpts{RunOnStart: true},
+		))
+	}
+
+	if deps.Config != nil && deps.BlogRefresher != nil {
+		interval := time.Duration(deps.Config.BlogRefreshSeconds) * time.Second
+		periodic = append(periodic, river.NewPeriodicJob(
+			river.PeriodicInterval(interval),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return BlogRefreshArgs{}, &river.InsertOpts{
+					MaxAttempts: 3,
+					UniqueOpts:  river.UniqueOpts{ByPeriod: interval},
+				}
+			},
+			&river.PeriodicJobOpts{RunOnStart: true},
+		))
+	}
+
+	if deps.Config != nil && deps.ContactRefresher != nil {
+		interval := time.Duration(deps.Config.ContactRefreshSeconds) * time.Second
+		periodic = append(periodic, river.NewPeriodicJob(
+			river.PeriodicInterval(interval),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return ContactRefreshArgs{}, &river.InsertOpts{
 					MaxAttempts: 3,
 					UniqueOpts:  river.UniqueOpts{ByPeriod: interval},
 				}

@@ -58,7 +58,7 @@ func TestLoad_Defaults(t *testing.T) {
 	for _, key := range []string{
 		"PORT", "METRIKA_DISCORD_VANITY", "YOUTUBE_CHANNELS",
 		"TWITCH_LOGIN", "SOCIAL_SCRAPE_URL", "SOCIAL_REFRESH_SECONDS",
-		"MEDIA_REFRESH_SECONDS",
+		"MEDIA_REFRESH_SECONDS", "BLOG_REFRESH_SECONDS", "CONTACT_REFRESH_SECONDS",
 	} {
 		t.Setenv(key, "")
 	}
@@ -88,6 +88,12 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 	if cfg.MediaRefreshSeconds != 1800 {
 		t.Errorf("MediaRefreshSeconds = %d, want 1800", cfg.MediaRefreshSeconds)
+	}
+	if cfg.BlogRefreshSeconds != 1800 {
+		t.Errorf("BlogRefreshSeconds = %d, want 1800", cfg.BlogRefreshSeconds)
+	}
+	if cfg.ContactRefreshSeconds != 21600 {
+		t.Errorf("ContactRefreshSeconds = %d, want 21600", cfg.ContactRefreshSeconds)
 	}
 	if len(cfg.MediaFeedURLs) != 2 {
 		t.Errorf("MediaFeedURLs = %v, want the two default channel feeds", cfg.MediaFeedURLs)

@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/OSAlt/gb-www-nixie/internal/adapters/youtube"
 	"github.com/OSAlt/gb-www-nixie/internal/config"
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/OSAlt/gb-www-nixie/internal/ports"
@@ -29,11 +30,7 @@ const (
 
 	// MediaCacheKey is the row the home page reads and the refresh job writes.
 	MediaCacheKey = "youtube:recent"
-
-	youtubeAPIBase = "https://www.googleapis.com"
 )
-
-var errNoAPIKey = errors.New("youtube api key not configured")
 
 type cacheEntry struct {
 	posts     []domain.MediaPost
@@ -45,7 +42,7 @@ type cacheEntry struct {
 // YouTube/Atom feeds. It is deliberately tolerant: the home page hides the
 // video section when nothing is available.
 //
-// With a MediaCacheStore the service becomes read-through: request paths serve
+// With a ContentCacheStore the service becomes read-through: request paths serve
 // the last-known-good payload written by the refresh job and never call the
 // upstream API. Without a store it keeps the old in-process behaviour, but
 // serves expired data immediately and refreshes in the background instead of
@@ -54,7 +51,7 @@ type Service struct {
 	cfg     *config.Config
 	apiBase string
 	client  *http.Client
-	store   ports.MediaCacheStore
+	store   ports.ContentCacheStore
 
 	mu        sync.RWMutex
 	cache     cacheEntry
@@ -67,7 +64,7 @@ type Service struct {
 func NewService(cfg *config.Config) *Service {
 	return &Service{
 		cfg:       cfg,
-		apiBase:   youtubeAPIBase,
+		apiBase:   youtube.DefaultBaseURL,
 		client:    &http.Client{Timeout: fetchTimeout},
 		playlists: make(map[string]string),
 	}
@@ -75,7 +72,7 @@ func NewService(cfg *config.Config) *Service {
 
 // WithStore makes the service read and write through a shared cache. It must
 // be called before the service is used concurrently.
-func (s *Service) WithStore(store ports.MediaCacheStore) *Service {
+func (s *Service) WithStore(store ports.ContentCacheStore) *Service {
 	s.store = store
 	return s
 }
@@ -120,12 +117,12 @@ func (s *Service) Refresh(ctx context.Context, count int) (int, error) {
 	}
 
 	if s.store != nil {
-		entry, err := s.store.LoadMediaCache(ctx, MediaCacheKey)
+		entry, err := s.store.LoadContentCache(ctx, MediaCacheKey)
 		switch {
 		case err == nil && time.Now().Before(entry.ExpiresAt):
 			slog.Info("media cache is fresh; skipping refresh", "expires_at", entry.ExpiresAt)
 			return 0, nil
-		case err != nil && !errors.Is(err, ports.ErrMediaCacheMiss):
+		case err != nil && !errors.Is(err, ports.ErrContentCacheMiss):
 			slog.Warn("media cache read failed; refreshing anyway", "error", err)
 		}
 	}
@@ -140,6 +137,44 @@ func (s *Service) Refresh(ctx context.Context, count int) (int, error) {
 	return len(posts), nil
 }
 
+// CacheState reports the shared (or in-memory) cache for health checks.
+func (s *Service) CacheState(ctx context.Context) (ports.CacheState, error) {
+	state := ports.CacheState{Key: MediaCacheKey, Missing: true}
+
+	if s.store != nil {
+		entry, err := s.store.LoadContentCache(ctx, MediaCacheKey)
+		if err != nil {
+			if errors.Is(err, ports.ErrContentCacheMiss) {
+				return state, nil
+			}
+			return state, err
+		}
+
+		var posts []domain.MediaPost
+		if err := json.Unmarshal(entry.Payload, &posts); err != nil {
+			return state, fmt.Errorf("decode media cache: %w", err)
+		}
+		state.Items = len(posts)
+		state.FetchedAt = entry.FetchedAt
+		state.ExpiresAt = entry.ExpiresAt
+		state.Stale = time.Now().After(entry.ExpiresAt)
+		state.Missing = false
+		return state, nil
+	}
+
+	s.mu.RLock()
+	entry := s.cache
+	s.mu.RUnlock()
+
+	if len(entry.posts) > 0 {
+		state.Items = len(entry.posts)
+		state.ExpiresAt = entry.expiresAt
+		state.Stale = time.Now().After(entry.expiresAt)
+		state.Missing = false
+	}
+	return state, nil
+}
+
 // fromStore returns the cached payload when one is present. A miss, an
 // unreadable row, or invalid JSON all fall through to the in-memory path.
 func (s *Service) fromStore(ctx context.Context) ([]domain.MediaPost, bool) {
@@ -147,9 +182,9 @@ func (s *Service) fromStore(ctx context.Context) ([]domain.MediaPost, bool) {
 		return nil, false
 	}
 
-	entry, err := s.store.LoadMediaCache(ctx, MediaCacheKey)
+	entry, err := s.store.LoadContentCache(ctx, MediaCacheKey)
 	if err != nil {
-		if !errors.Is(err, ports.ErrMediaCacheMiss) {
+		if !errors.Is(err, ports.ErrContentCacheMiss) {
 			slog.Warn("media cache read failed", "error", err)
 		}
 		return nil, false
@@ -206,7 +241,7 @@ func (s *Service) doRefresh(ctx context.Context, count int, key string, force bo
 			if err != nil {
 				return nil, fmt.Errorf("encode media cache: %w", err)
 			}
-			if err := s.store.SaveMediaCache(ctx, MediaCacheKey, payload, expiresAt); err != nil {
+			if err := s.store.SaveContentCache(ctx, MediaCacheKey, payload, expiresAt); err != nil {
 				return nil, fmt.Errorf("save media cache: %w", err)
 			}
 		}
@@ -251,7 +286,7 @@ func (s *Service) ttl() time.Duration {
 // cache" rather than a request failure.
 func (s *Service) fetch(ctx context.Context, count int) []domain.MediaPost {
 	posts, apiErr := s.fetchFromAPI(ctx, max(count, defaultRefreshCount))
-	if apiErr != nil && !errors.Is(apiErr, errNoAPIKey) {
+	if apiErr != nil && !errors.Is(apiErr, youtube.ErrNoAPIKey) {
 		slog.Warn("youtube api media fetch failed", "error", apiErr)
 	}
 	if len(posts) == 0 {
@@ -298,14 +333,12 @@ func (s *Service) fetchFeeds(ctx context.Context) ([]domain.MediaPost, int) {
 }
 
 func (s *Service) fetchFromAPI(ctx context.Context, count int) ([]domain.MediaPost, error) {
-	if s.cfg.YoutubeApiKey == "" {
-		return nil, errNoAPIKey
-	}
-
 	channels := splitChannels(s.cfg.YoutubeChannels)
 	if len(channels) == 0 {
 		return nil, fmt.Errorf("no youtube channels configured")
 	}
+
+	client := s.youtubeClient()
 
 	// Channels are independent, so fetch them concurrently. Results are kept
 	// per channel and merged in config order to keep sorting deterministic.
@@ -313,14 +346,27 @@ func (s *Service) fetchFromAPI(ctx context.Context, count int) ([]domain.MediaPo
 	group, groupCtx := errgroup.WithContext(ctx)
 	for i, channel := range channels {
 		group.Go(func() error {
-			playlistID, err := s.uploadsPlaylist(groupCtx, channel)
+			playlistID, err := s.uploadsPlaylist(groupCtx, client, channel)
 			if err != nil {
 				return fmt.Errorf("channel %q: %w", channel, err)
 			}
 
-			items, err := s.playlistItems(groupCtx, playlistID, count)
+			videos, err := client.PlaylistItems(groupCtx, playlistID, count)
 			if err != nil {
 				return fmt.Errorf("channel %q playlist: %w", channel, err)
+			}
+
+			items := make([]mediaItem, 0, len(videos))
+			for _, video := range videos {
+				items = append(items, mediaItem{
+					post: domain.MediaPost{
+						ID:       video.ID,
+						Caption:  video.Title,
+						URL:      "https://www.youtube.com/watch?v=" + video.ID,
+						ImageURL: video.ImageURL,
+					},
+					published: video.PublishedAt,
+				})
 			}
 			results[i] = items
 			return nil
@@ -346,26 +392,10 @@ func (s *Service) fetchFromAPI(ctx context.Context, count int) ([]domain.MediaPo
 	return sortAndConvert(items), nil
 }
 
-type youTubeSelector struct{ param, value string }
-
-func youTubeSelectors(channel string) []youTubeSelector {
-	handle := strings.TrimPrefix(channel, "@")
-	if strings.HasPrefix(channel, "UC") {
-		return []youTubeSelector{{"id", channel}}
-	}
-	if after, ok := strings.CutPrefix(channel, "user/"); ok {
-		return []youTubeSelector{{"forUsername", after}}
-	}
-	return []youTubeSelector{
-		{"forHandle", handle},
-		{"forUsername", handle},
-	}
-}
-
 // uploadsPlaylist resolves a channel's uploads playlist once and then serves it
 // from memory. The value is stable for the lifetime of a channel, so this
-// removes one channels.list call per channel per refresh after the first.
-func (s *Service) uploadsPlaylist(ctx context.Context, channel string) (string, error) {
+// removes the channels.list call from every refresh after the first.
+func (s *Service) uploadsPlaylist(ctx context.Context, client youtube.Client, channel string) (string, error) {
 	s.mu.RLock()
 	playlistID, ok := s.playlists[channel]
 	s.mu.RUnlock()
@@ -373,117 +403,26 @@ func (s *Service) uploadsPlaylist(ctx context.Context, channel string) (string, 
 		return playlistID, nil
 	}
 
-	playlistID, err := s.resolveUploadsPlaylist(ctx, channel)
+	info, err := client.Channel(ctx, channel)
 	if err != nil {
 		return "", err
 	}
+	if info.UploadsPlaylist == "" {
+		return "", fmt.Errorf("channel %q has no uploads playlist", channel)
+	}
 
 	s.mu.Lock()
-	s.playlists[channel] = playlistID
+	s.playlists[channel] = info.UploadsPlaylist
 	s.mu.Unlock()
-	return playlistID, nil
+	return info.UploadsPlaylist, nil
 }
 
-func (s *Service) resolveUploadsPlaylist(ctx context.Context, channel string) (string, error) {
-	var lastErr error
-	for _, sel := range youTubeSelectors(channel) {
-		reqURL := fmt.Sprintf("%s/youtube/v3/channels?part=contentDetails&%s=%s&key=%s",
-			s.apiBase, sel.param, url.QueryEscape(sel.value), url.QueryEscape(s.cfg.YoutubeApiKey))
-
-		var payload struct {
-			Items []struct {
-				ContentDetails struct {
-					RelatedPlaylists struct {
-						Uploads string `json:"uploads"`
-					} `json:"relatedPlaylists"`
-				} `json:"contentDetails"`
-			} `json:"items"`
-		}
-		if err := s.getJSON(ctx, reqURL, &payload); err != nil {
-			return "", err
-		}
-		if len(payload.Items) == 0 || payload.Items[0].ContentDetails.RelatedPlaylists.Uploads == "" {
-			lastErr = fmt.Errorf("not found via %s", sel.param)
-			continue
-		}
-		return payload.Items[0].ContentDetails.RelatedPlaylists.Uploads, nil
+func (s *Service) youtubeClient() youtube.Client {
+	return youtube.Client{
+		APIKey:     s.cfg.YoutubeApiKey,
+		BaseURL:    s.apiBase,
+		HTTPClient: s.client,
 	}
-	return "", lastErr
-}
-
-func (s *Service) playlistItems(ctx context.Context, playlistID string, count int) ([]mediaItem, error) {
-	reqURL := fmt.Sprintf("%s/youtube/v3/playlistItems?part=snippet&playlistId=%s&maxResults=%d&key=%s",
-		s.apiBase, url.QueryEscape(playlistID), count, url.QueryEscape(s.cfg.YoutubeApiKey))
-
-	var payload struct {
-		Items []struct {
-			Snippet struct {
-				Title       string    `json:"title"`
-				PublishedAt time.Time `json:"publishedAt"`
-				ResourceID  struct {
-					VideoID string `json:"videoId"`
-				} `json:"resourceId"`
-				Thumbnails thumbnails `json:"thumbnails"`
-			} `json:"snippet"`
-		} `json:"items"`
-	}
-	if err := s.getJSON(ctx, reqURL, &payload); err != nil {
-		return nil, err
-	}
-
-	items := make([]mediaItem, 0, len(payload.Items))
-	for _, item := range payload.Items {
-		id := item.Snippet.ResourceID.VideoID
-		if id == "" {
-			continue
-		}
-		post := domain.MediaPost{
-			ID:       id,
-			Caption:  strings.TrimSpace(item.Snippet.Title),
-			URL:      "https://www.youtube.com/watch?v=" + id,
-			ImageURL: bestThumbnail(item.Snippet.Thumbnails),
-		}
-		items = append(items, mediaItem{post: post, published: item.Snippet.PublishedAt})
-	}
-	return items, nil
-}
-
-type thumbnail struct {
-	URL string `json:"url"`
-}
-
-type thumbnails struct {
-	Default  thumbnail `json:"default"`
-	Medium   thumbnail `json:"medium"`
-	High     thumbnail `json:"high"`
-	Standard thumbnail `json:"standard"`
-	Maxres   thumbnail `json:"maxres"`
-}
-
-func bestThumbnail(t thumbnails) string {
-	for _, candidate := range []thumbnail{t.Maxres, t.Standard, t.High, t.Medium, t.Default} {
-		if candidate.URL != "" {
-			return candidate.URL
-		}
-	}
-	return ""
-}
-
-func (s *Service) getJSON(ctx context.Context, reqURL string, target any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		return err
-	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("http status %s", resp.Status)
-	}
-	return json.NewDecoder(resp.Body).Decode(target)
 }
 
 type mediaItem struct {

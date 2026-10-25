@@ -41,7 +41,7 @@ func (a *Adapter) ListContacts(ctx context.Context, domainName string) ([]domain
 
 func (a *Adapter) GetSocialCounts(ctx context.Context) (map[string]int, error) {
 	// Values are refreshed daily by the social metrics worker in
-	// cmd/server/main.go (see doc/social_migration.md); the seeded rows keep
+	// cmd/server/main.go (see docs/social_migration.md); the seeded rows keep
 	// the chart working until the first refresh.
 	rows, err := a.queries.GetSocialCounts(ctx)
 	if err != nil {

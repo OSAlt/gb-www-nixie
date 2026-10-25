@@ -20,6 +20,10 @@ blog_urls:
 # The same value is the cache's freshness window. Default: 1800 (30 minutes).
 # media_refresh_seconds: 1800
 
+# Blog cache (default 30 minutes) and contact-subject cache (default 6 hours).
+# blog_refresh_seconds: 1800
+# contact_refresh_seconds: 21600
+
 newsletters:
   - name: "geekbeacon"
     description: "geekbeacon news and updates. Stay current with all the community news!"
