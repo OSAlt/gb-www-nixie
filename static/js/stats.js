@@ -40,8 +40,8 @@ function startChart() {
     let fontsReady = Promise.resolve();
     if (document.fonts && document.fonts.load) {
         fontsReady = Promise.all([
-            document.fonts.load("700 16px Comfortaa", "YouTube: 330,000"),
-            document.fonts.load("400 16px Comfortaa", "YouTube: 330,000")
+            document.fonts.load("600 16px Inter", "YouTube: 330,000"),
+            document.fonts.load("400 16px Inter", "YouTube: 330,000")
         ]).catch(function () {});
     }
     Promise.race([fontsReady, new Promise(function (resolve) { setTimeout(resolve, 3000); })]).then(makeChart);

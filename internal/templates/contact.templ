@@ -5,7 +5,11 @@ import (
 )
 
 templ ContactPage(subjects []string, newsletters []config.Newsletter) {
-	@Layout("NixiePixel - Contact") {
+	@Layout(
+		"Contact — Nixie Pixel",
+		"Get in touch with Nixie Pixel for sponsorships, speaking engagements, collaborations and newsletters.",
+		"/contact",
+	) {
 		<section id="contact-page" class="py-5 mt-5">
 			<div class="container mt-5">
 				<div class="row">

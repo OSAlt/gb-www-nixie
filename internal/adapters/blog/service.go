@@ -3,6 +3,7 @@ package blog
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -10,6 +11,13 @@ import (
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/mmcdole/gofeed"
 )
+
+// feedItem keeps the parsed date around for sorting. domain.BlogPost only
+// carries a human-readable date, which does not sort correctly as a string.
+type feedItem struct {
+	post      domain.BlogPost
+	published time.Time
+}
 
 type cacheEntry struct {
 	posts     []domain.BlogPost
@@ -44,7 +52,9 @@ func (s *Service) GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
 	}
 
 	fp := gofeed.NewParser()
-	var allPosts []domain.BlogPost
+	var items []feedItem
+	seen := make(map[string]struct{})
+	successes := 0
 
 	for _, url := range s.cfg.BlogURLs {
 		feed, err := fp.ParseURLWithContext(url, ctx)
@@ -52,6 +62,7 @@ func (s *Service) GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
 			fmt.Printf("Warning: failed to fetch feed from %s: %v\n", url, err)
 			continue
 		}
+		successes++
 
 		for _, item := range feed.Items {
 			post := domain.BlogPost{
@@ -62,9 +73,12 @@ func (s *Service) GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
 				Author:      "",
 			}
 
+			var published time.Time
 			if item.PublishedParsed != nil {
+				published = *item.PublishedParsed
 				post.PublishedAt = item.PublishedParsed.Format("January 02, 2006")
 			} else if item.UpdatedParsed != nil {
+				published = *item.UpdatedParsed
 				post.PublishedAt = item.UpdatedParsed.Format("January 02, 2006")
 			}
 
@@ -88,11 +102,46 @@ func (s *Service) GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
 				}
 			}
 
-			allPosts = append(allPosts, post)
+			// The same post can appear in more than one tag feed. Prefer the
+			// link as the identity, falling back to title and date for feeds
+			// that omit links.
+			key := post.URL
+			if key == "" {
+				key = post.Title + "|" + post.PublishedAt
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+
+			items = append(items, feedItem{post: post, published: published})
 		}
 	}
 
-	// Update cache (5 minute TTL)
+	// Newest first. Undated posts keep their feed order at the end.
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].published.IsZero() {
+			return false
+		}
+		if items[j].published.IsZero() {
+			return true
+		}
+		return items[i].published.After(items[j].published)
+	})
+
+	allPosts := make([]domain.BlogPost, len(items))
+	for i, item := range items {
+		allPosts[i] = item.post
+	}
+
+	if successes == 0 {
+		// Do not cache a total failure. A bad URL or a transient outage would
+		// otherwise leave the blog empty for the whole TTL, so fixing the config
+		// would appear to do nothing until the process restarted.
+		return allPosts, nil
+	}
+
+	// Update cache (30 minute TTL)
 	s.cache = cacheEntry{
 		posts:     allPosts,
 		expiresAt: time.Now().Add(30 * time.Minute),

@@ -21,16 +21,33 @@ func render(t *testing.T, component templ.Component) string {
 }
 
 func TestLayout(t *testing.T) {
-	body := render(t, Layout("NixiePixel - Test"))
+	body := render(t, Layout("NixiePixel - Test", "A test description.", "/test"))
 	for _, want := range []string{
 		"<!doctype html>",
 		"<title>NixiePixel - Test</title>",
-		`href="/static/css/style.css?v=10"`,
+		`href="/static/css/style.css?v=13"`,
 		`href="/blog"`,
 		`id="socialWeb"`,
+		`name="description" content="A test description."`,
+		`rel="canonical" href="https://nixiepixel.com/test"`,
+		`property="og:title" content="NixiePixel - Test"`,
+		`property="og:image" content="https://nixiepixel.com/static/imgs/og-default.jpg"`,
+		`name="twitter:card" content="summary_large_image"`,
+		`type="application/ld+json"`,
+		`"@type":"Person"`,
+		`href="/portfolio#trusted-by"`,
+		`id="site-footer"`,
+		`class="skip-link"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("layout missing %q", want)
+		}
+	}
+
+	// The old zoom lock and unused client libraries must not come back.
+	for _, unwanted := range []string{"maximum-scale", "jquery", "htmx"} {
+		if strings.Contains(strings.ToLower(body), unwanted) {
+			t.Errorf("layout should not contain %q", unwanted)
 		}
 	}
 
@@ -41,6 +58,24 @@ func TestLayout(t *testing.T) {
 	}
 	if body := render(t, Social("customSocial")); !strings.Contains(body, `id="customSocial"`) {
 		t.Error("social list did not use the supplied id")
+	}
+}
+
+func TestCanonicalURL(t *testing.T) {
+	if got := canonicalURL(""); got != "https://nixiepixel.com/" {
+		t.Errorf("canonicalURL(\"\") = %q", got)
+	}
+	if got := canonicalURL("/portfolio"); got != "https://nixiepixel.com/portfolio" {
+		t.Errorf("canonicalURL(/portfolio) = %q", got)
+	}
+}
+
+func TestLlamaMark(t *testing.T) {
+	body := render(t, LlamaMark("llama-sticker"))
+	for _, want := range []string{`viewBox="0 0 16 16"`, "llama-mark", "llama-sticker", "Nixie Pixel llama"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("llama mark missing %q", want)
+		}
 	}
 }
 
@@ -55,10 +90,24 @@ func TestIndex(t *testing.T) {
 		"Who I Am & What I Do",
 		"about-card-purple",
 		"https://geekbeacon.org/",
+		"Work with me",
+		"410K+",
+		"TRUSTED BY",
+		"Fresh from the channel",
+		`src="/static/imgs/hero.jpg"`,
+		`srcset="/static/imgs/hero.webp"`,
+		"Put your product in front of 410,000+ tech buyers.",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("index missing %q", want)
 		}
+	}
+}
+
+func TestIndex_WithoutMedia(t *testing.T) {
+	body := render(t, Index(nil, nil))
+	if strings.Contains(body, "Fresh from the channel") {
+		t.Error("the video section must not render without posts")
 	}
 }
 

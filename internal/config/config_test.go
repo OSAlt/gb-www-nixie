@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoad_FromEnvironment(t *testing.T) {
 	t.Setenv("PORT", "9999")
@@ -100,5 +104,27 @@ func TestLoad_InvalidNumberFails(t *testing.T) {
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected an unmarshal error for a non-numeric refresh interval")
+	}
+}
+
+func TestLoad_ReadsYMLConfig(t *testing.T) {
+	// Run from a scratch directory so the test never reads the developer's
+	// real config/config.yaml or .env.
+	t.Chdir(t.TempDir())
+
+	if err := os.MkdirAll("config", 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	yml := "blog_urls:\n  - https://example.com/rss\n"
+	if err := os.WriteFile(filepath.Join("config", "config.yml"), []byte(yml), 0o644); err != nil {
+		t.Fatalf("write config.yml: %v", err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(cfg.BlogURLs) != 1 || cfg.BlogURLs[0] != "https://example.com/rss" {
+		t.Errorf("BlogURLs = %v, want the URLs from config/config.yml", cfg.BlogURLs)
 	}
 }

@@ -6,7 +6,11 @@ import (
 )
 
 templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, currentPage, totalPages int) {
-	@Layout("NixiePixel - Blog") {
+	@Layout(
+		"Blog — Nixie Pixel",
+		"Linux, open-source and gaming write-ups from Nixie Pixel, plus coverage from around the tech web.",
+		"/blog",
+	) {
 		<section id="blog" class="py-5 mt-5">
 			<div class="container mt-5">
 				<h2 class="text-purple border-bottom border-purple pb-2 mb-4">Blog</h2>
@@ -26,7 +30,7 @@ templ Blog(posts []domain.BlogPost, categories []string, searchQuery string, cur
 							for _, post := range posts {
 								<div class="card bg-dark text-light border-purple mb-4">
 									if post.ImageURL != "" {
-										<img src={ post.ImageURL } class="card-img-top" alt={ post.Title }/>
+										<img src={ post.ImageURL } class="card-img-top" alt={ post.Title } loading="lazy"/>
 									}
 									<div class="card-body">
 										<h3 class="card-title text-purple">{ post.Title }</h3>

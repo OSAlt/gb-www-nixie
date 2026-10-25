@@ -1,10 +1,14 @@
-## Example config
+## Example config. Copy to config/config.yaml (config/config.yml also works).
 port: "8080"
 database_url: "" ## set this via env using DATABASE_URL
+
+# RSS/Atom feeds merged into /blog. Only feeds listed here are loaded.
 blog_urls:
-  - https://www.geekbeacon.org/tag/tags/rss/
-  - https://www.geekbeacon.org/tag/bar/rss/
-  - https://www.geekbeacon.org/tag/foo/rss/
+  - https://www.geekbeacon.org/tag/geekbeacon-fest/rss/
+  - https://www.geekbeacon.org/tag/geeksabroad/rss/
+  - https://www.geekbeacon.org/tag/youtube/rss/
+  # Currently returns 404; the blog logs a warning and skips it until it exists.
+  - https://www.geekbeacon.org/tag/pixelplayback/rss/
 
 newsletters:
   - name: "geekbeacon"

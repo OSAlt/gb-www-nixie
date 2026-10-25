@@ -93,7 +93,26 @@ func TestService_GetRecentPosts_ParsesRSSAndAtom(t *testing.T) {
 		t.Fatalf("got %d posts, want 4: %+v", len(posts), posts)
 	}
 
-	linux := posts[0]
+	// Newest first: the Atom entry is dated Jan 3, the RSS item Jan 2, and the
+	// two undated items keep their feed order at the end.
+	vlog := posts[0]
+	if vlog.Title != "Vlog Entry" {
+		t.Errorf("got atom title %q", vlog.Title)
+	}
+	if vlog.PublishedAt != "January 03, 2006" {
+		t.Errorf("got atom date %q, want the updated date", vlog.PublishedAt)
+	}
+	if vlog.Author != "Nixie" {
+		t.Errorf("got atom author %q", vlog.Author)
+	}
+	if !strings.Contains(vlog.Content, "Vlog content") {
+		t.Errorf("got atom content %q", vlog.Content)
+	}
+	if len(vlog.Categories) != 1 || vlog.Categories[0] != "Vlog" {
+		t.Errorf("got atom categories %v", vlog.Categories)
+	}
+
+	linux := posts[1]
 	if linux.Title != "Linux Adventures" {
 		t.Errorf("got title %q", linux.Title)
 	}
@@ -114,30 +133,87 @@ func TestService_GetRecentPosts_ParsesRSSAndAtom(t *testing.T) {
 	}
 
 	// Audio enclosures are not images.
-	if posts[1].ImageURL != "" {
-		t.Errorf("audio enclosure should not become an image, got %q", posts[1].ImageURL)
+	if posts[2].ImageURL != "" {
+		t.Errorf("audio enclosure should not become an image, got %q", posts[2].ImageURL)
 	}
 	// Image enclosures are.
-	if posts[2].ImageURL != "https://example.com/photo.png" {
-		t.Errorf("got image %q, want the image enclosure", posts[2].ImageURL)
+	if posts[3].ImageURL != "https://example.com/photo.png" {
+		t.Errorf("got image %q, want the image enclosure", posts[3].ImageURL)
+	}
+}
+
+func TestService_GetRecentPosts_DeduplicatesAcrossFeeds(t *testing.T) {
+	srv := feedServer(t, nil)
+	svc := NewService(&config.Config{BlogURLs: []string{
+		srv.URL + "/rss.xml",
+		srv.URL + "/rss.xml",
+	}})
+
+	posts, err := svc.GetRecentPosts(context.Background())
+	if err != nil {
+		t.Fatalf("GetRecentPosts: %v", err)
+	}
+	if len(posts) != 3 {
+		t.Fatalf("got %d posts, want 3 unique posts: %+v", len(posts), posts)
+	}
+	seen := make(map[string]bool)
+	for _, post := range posts {
+		if seen[post.URL] {
+			t.Errorf("duplicate post URL %q", post.URL)
+		}
+		seen[post.URL] = true
+	}
+}
+
+func TestService_GetRecentPosts_SortsNewestFirst(t *testing.T) {
+	const feed = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Nixie Blog</title>
+    <link>https://example.com</link>
+    <description>Blog</description>
+    <item>
+      <title>Oldest</title>
+      <link>https://example.com/oldest</link>
+      <pubDate>Mon, 02 Jan 2006 15:04:05 GMT</pubDate>
+    </item>
+    <item>
+      <title>Undated</title>
+      <link>https://example.com/undated</link>
+    </item>
+    <item>
+      <title>Newest</title>
+      <link>https://example.com/newest</link>
+      <pubDate>Wed, 04 Jan 2006 15:04:05 GMT</pubDate>
+    </item>
+    <item>
+      <title>Middle</title>
+      <link>https://example.com/middle</link>
+      <pubDate>Tue, 03 Jan 2006 15:04:05 GMT</pubDate>
+    </item>
+  </channel>
+</rss>`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/rss+xml")
+		_, _ = w.Write([]byte(feed))
+	}))
+	t.Cleanup(srv.Close)
+
+	svc := NewService(&config.Config{BlogURLs: []string{srv.URL + "/rss.xml"}})
+	posts, err := svc.GetRecentPosts(context.Background())
+	if err != nil {
+		t.Fatalf("GetRecentPosts: %v", err)
 	}
 
-	// Atom entries without a published date fall back to <updated>.
-	vlog := posts[3]
-	if vlog.Title != "Vlog Entry" {
-		t.Errorf("got atom title %q", vlog.Title)
+	want := []string{"Newest", "Middle", "Oldest", "Undated"}
+	if len(posts) != len(want) {
+		t.Fatalf("got %d posts, want %d", len(posts), len(want))
 	}
-	if vlog.PublishedAt != "January 03, 2006" {
-		t.Errorf("got atom date %q, want the updated date", vlog.PublishedAt)
-	}
-	if vlog.Author != "Nixie" {
-		t.Errorf("got atom author %q", vlog.Author)
-	}
-	if !strings.Contains(vlog.Content, "Vlog content") {
-		t.Errorf("got atom content %q", vlog.Content)
-	}
-	if len(vlog.Categories) != 1 || vlog.Categories[0] != "Vlog" {
-		t.Errorf("got atom categories %v", vlog.Categories)
+	for i, title := range want {
+		if posts[i].Title != title {
+			t.Errorf("post %d: got %q, want %q", i, posts[i].Title, title)
+		}
 	}
 }
 
@@ -180,7 +256,8 @@ func TestService_GetRecentPosts_SkipsBrokenFeed(t *testing.T) {
 }
 
 func TestService_GetRecentPosts_AllFeedsFail(t *testing.T) {
-	srv := feedServer(t, nil)
+	var hits atomic.Int32
+	srv := feedServer(t, &hits)
 	svc := NewService(&config.Config{BlogURLs: []string{
 		srv.URL + "/missing.xml",
 		srv.URL + "/also-missing.xml",
@@ -192,6 +269,15 @@ func TestService_GetRecentPosts_AllFeedsFail(t *testing.T) {
 	}
 	if len(posts) != 0 {
 		t.Errorf("got %d posts, want none", len(posts))
+	}
+
+	// A total failure must not be cached, otherwise a transient outage (or a
+	// fixed URL) would leave the blog empty until the process restarts.
+	if _, err := svc.GetRecentPosts(context.Background()); err != nil {
+		t.Fatalf("second GetRecentPosts: %v", err)
+	}
+	if got := hits.Load(); got != 4 {
+		t.Errorf("got %d feed requests, want 4 (failures must not be cached)", got)
 	}
 }
 
