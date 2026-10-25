@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
-	"runtime/debug"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/blog"
@@ -17,16 +18,27 @@ import (
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/media"
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/social"
 	"github.com/OSAlt/gb-www-nixie/internal/config"
+	"github.com/OSAlt/gb-www-nixie/internal/jobs"
 	"github.com/OSAlt/gb-www-nixie/internal/ports"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 )
+
+const shutdownTimeout = 15 * time.Second
 
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
+		slog.Error("error loading config", "error", err)
 		os.Exit(1)
 	}
+
+	// One signal-aware context for startup work; the HTTP server and River are
+	// stopped explicitly below so in-flight work can drain.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	// Wiring
 	mediaSvc := media.NewService(cfg)
@@ -36,6 +48,7 @@ func main() {
 	var (
 		dbSvc ports.DBService
 		uow   ports.UnitOfWork
+		pool  *pgxpool.Pool
 	)
 	if cfg.DatabaseURL != "" {
 		// Run migrations
@@ -44,20 +57,22 @@ func main() {
 			migrationsDir = "db/migrations"
 		}
 		if err := db_adapter.RunMigrations(cfg.DatabaseURL, migrationsDir); err != nil {
-			fmt.Printf("Warning: Failed to run migrations: %v\n", err)
+			slog.Warn("failed to run migrations", "error", err)
 		}
 
-		pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+		pool, err = pgxpool.New(ctx, cfg.DatabaseURL)
 		if err == nil {
 			// pgxpool connects lazily, so ping to preserve the old behaviour of
 			// warning (and continuing without a DB) when the database is down.
-			if pingErr := pool.Ping(context.Background()); pingErr != nil {
+			if pingErr := pool.Ping(ctx); pingErr != nil {
 				err = pingErr
 				pool.Close()
+				pool = nil
 			}
 		}
 		if err != nil {
-			fmt.Printf("Warning: Unable to connect to database: %v. Using mock DB.\n", err)
+			slog.Warn("unable to connect to database; continuing without one", "error", err)
+			pool = nil
 		} else {
 			defer pool.Close()
 			adapter := db_adapter.NewAdapter(pool)
@@ -68,10 +83,26 @@ func main() {
 	contactSvc := contact.NewService(cfg, dbSvc)
 	blogSvc := blog.NewService(cfg)
 
-	// Social follower-count refresh (see doc/social_migration.md)
+	// Social follower-count refresh (see doc/social_migration.md). The
+	// aggregator is built here and handed to the River worker.
+	var socialFetcher *social.Aggregator
 	if dbSvc != nil {
 		if fetcher, ok := newSocialAggregator(cfg); ok {
-			go runSocialMetricsWorker(context.Background(), dbSvc, uow, fetcher, cfg)
+			socialFetcher = fetcher
+		} else {
+			slog.Info("no social sources configured; background jobs disabled")
+		}
+	}
+
+	// Background jobs. River needs its own schema and at least one worker, so
+	// it is only started when a database and a fetcher are both available.
+	var riverClient *river.Client[pgx.Tx]
+	if pool != nil && socialFetcher != nil {
+		if err := db_adapter.MigrateRiver(ctx, pool); err != nil {
+			slog.Error("river migrations failed; background jobs disabled", "error", err)
+		} else if riverClient, err = startRiver(ctx, pool, cfg, dbSvc, uow, socialFetcher); err != nil {
+			slog.Error("river client failed to start; background jobs disabled", "error", err)
+			riverClient = nil
 		}
 	}
 
@@ -101,25 +132,78 @@ func main() {
 		http.NotFound(w, r)
 	})
 
-	fmt.Printf("Server starting on http://localhost:%s\n", cfg.Port)
-	cwd, _ := os.Getwd()
-	fmt.Printf("Current working directory: %s\n", cwd)
 	if _, err := os.Stat("static"); err != nil {
-		fmt.Printf("Error: static directory not found: %v\n", err)
-	} else {
-		fmt.Println("Static directory found")
-		files, _ := os.ReadDir("static")
-		fmt.Print("Contents of static: ")
-		for _, f := range files {
-			fmt.Printf("%s ", f.Name())
-		}
-		fmt.Println()
+		slog.Warn("static directory not found; run the server from the repo root", "error", err)
 	}
 
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
-		fmt.Printf("Error starting server: %v\n", err)
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	slog.Info("server starting", "url", "http://localhost:"+cfg.Port)
+	serveErr := make(chan error, 1)
+	go func() { serveErr <- srv.ListenAndServe() }()
+
+	var runErr error
+	select {
+	case runErr = <-serveErr:
+	case <-ctx.Done():
+		slog.Info("shutdown signal received")
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Warn("http server did not shut down cleanly", "error", err)
+	}
+	if riverClient != nil {
+		if err := riverClient.Stop(shutdownCtx); err != nil {
+			slog.Warn("river client did not stop cleanly", "error", err)
+		}
+	}
+
+	if runErr != nil && !errors.Is(runErr, http.ErrServerClosed) {
+		slog.Error("server stopped with an error", "error", runErr)
 		os.Exit(1)
 	}
+	slog.Info("shutdown complete")
+}
+
+// startRiver builds and starts the River client. Start is given a context that
+// does not cancel on SIGTERM: the client is stopped explicitly in main so
+// running jobs can finish (River's Stop waits for them).
+func startRiver(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator) (*river.Client[pgx.Tx], error) {
+	workers, err := jobs.NewWorkers(jobs.Deps{
+		Config:        cfg,
+		DB:            dbSvc,
+		UnitOfWork:    uow,
+		SocialFetcher: fetcher,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
+		Schema:       db_adapter.RiverSchema,
+		Workers:      workers,
+		PeriodicJobs: jobs.PeriodicJobs(cfg, fetcher),
+		Queues: map[string]river.QueueConfig{
+			river.QueueDefault: {MaxWorkers: jobs.DefaultQueueMaxWorkers},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := client.Start(context.WithoutCancel(ctx)); err != nil {
+		return nil, err
+	}
+
+	slog.Info("background jobs started", "schema", db_adapter.RiverSchema)
+	return client, nil
 }
 
 // splitNonEmpty splits a comma-separated config value, trimming blanks.
@@ -184,103 +268,4 @@ func newSocialAggregator(cfg *config.Config) (*social.Aggregator, bool) {
 		return nil, false
 	}
 	return social.NewAggregatorWithBulk(bulk, fetchers...), true
-}
-
-// runSocialMetricsWorker supervises the refresh loop. If it ever exits or
-// panics unexpectedly, it is restarted with exponential backoff instead of
-// leaving the chart frozen until the next deploy.
-func runSocialMetricsWorker(ctx context.Context, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator, cfg *config.Config) {
-	backoff := time.Minute
-	for {
-		err := runSocialMetricsLoop(ctx, dbSvc, uow, fetcher, cfg)
-		if ctx.Err() != nil {
-			// Shutting down; not a crash.
-			return
-		}
-
-		slog.Error("social metrics worker stopped unexpectedly; restarting",
-			"error", err, "backoff", backoff)
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(backoff):
-		}
-		backoff = min(backoff*2, time.Hour)
-	}
-}
-
-// runSocialMetricsLoop refreshes follower counts once per interval, storing
-// each successful result as the new last-known-good value. Per-platform
-// failures are logged and leave the stored value untouched.
-//
-// The boot refresh is skipped when the stored data is newer than the interval,
-// so restarts and deploys do not spend Metrika requests on data that only
-// changes once a day.
-func runSocialMetricsLoop(ctx context.Context, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator, cfg *config.Config) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			slog.Error("panic in social metrics worker", "panic", r, "stack", string(debug.Stack()))
-			err = fmt.Errorf("panic: %v", r)
-		}
-	}()
-
-	interval := time.Duration(cfg.SocialRefreshSeconds) * time.Second
-	fmt.Printf("social metrics worker started (interval: %s)\n", interval)
-
-	if last, lastErr := dbSvc.LastSocialRefresh(ctx); lastErr != nil {
-		slog.Warn("social metrics: cannot read last refresh time; refreshing now", "error", lastErr)
-		refreshSocialMetrics(ctx, uow, fetcher)
-	} else if age := time.Since(last); age < interval {
-		fmt.Printf("social metrics: last refresh %s ago (< %s), skipping boot refresh\n",
-			age.Round(time.Minute), interval)
-	} else {
-		refreshSocialMetrics(ctx, uow, fetcher)
-	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-			refreshSocialMetrics(ctx, uow, fetcher)
-		}
-	}
-}
-
-// refreshSocialMetrics performs one refresh cycle. All platform counts are
-// written in a single transaction, so a database error leaves every stored
-// value on the previous (last-known-good) refresh instead of a partial update.
-// Panics are contained here as well as in the fetchers, so a single bad cycle
-// cannot stop the ticker.
-func refreshSocialMetrics(ctx context.Context, uow ports.UnitOfWork, fetcher *social.Aggregator) {
-	defer func() {
-		if r := recover(); r != nil {
-			slog.Error("panic during social metrics refresh", "panic", r, "stack", string(debug.Stack()))
-		}
-	}()
-
-	counts := fetcher.Fetch(ctx)
-	if len(counts) == 0 {
-		fmt.Printf("social metrics: no platform fetches succeeded; keeping last-known-good values\n")
-		return
-	}
-
-	err := uow.WithTx(ctx, func(ctx context.Context, tx ports.Transaction) error {
-		for platform, followers := range counts {
-			if err := tx.UpsertSocialCount(ctx, platform, followers); err != nil {
-				return fmt.Errorf("upsert %s: %w", platform, err)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		slog.Warn("social metrics refresh failed; keeping last-known-good values", "error", err)
-		return
-	}
-
-	for platform, followers := range counts {
-		fmt.Printf("social metrics: %s = %d\n", platform, followers)
-	}
 }

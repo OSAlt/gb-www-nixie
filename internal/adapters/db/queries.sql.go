@@ -11,6 +11,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getMediaCache = `-- name: GetMediaCache :one
+SELECT payload, fetched_at, expires_at
+FROM nixie.media_cache
+WHERE key = $1
+`
+
+type GetMediaCacheRow struct {
+	Payload   []byte
+	FetchedAt pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
+}
+
+func (q *Queries) GetMediaCache(ctx context.Context, key string) (GetMediaCacheRow, error) {
+	row := q.db.QueryRow(ctx, getMediaCache, key)
+	var i GetMediaCacheRow
+	err := row.Scan(&i.Payload, &i.FetchedAt, &i.ExpiresAt)
+	return i, err
+}
+
 const getSocialAppByType = `-- name: GetSocialAppByType :one
 SELECT app_id, social_app_type, client_id, secret, callback_url FROM config.social_app
 WHERE social_app_type = $1
@@ -142,6 +161,26 @@ func (q *Queries) ListSocialApps(ctx context.Context) ([]ConfigSocialApp, error)
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertMediaCache = `-- name: UpsertMediaCache :exec
+INSERT INTO nixie.media_cache (key, payload, fetched_at, expires_at)
+VALUES ($1, $2, now(), $3)
+ON CONFLICT (key) DO UPDATE
+    SET payload = EXCLUDED.payload,
+        fetched_at = EXCLUDED.fetched_at,
+        expires_at = EXCLUDED.expires_at
+`
+
+type UpsertMediaCacheParams struct {
+	Key       string
+	Payload   []byte
+	ExpiresAt pgtype.Timestamptz
+}
+
+func (q *Queries) UpsertMediaCache(ctx context.Context, arg UpsertMediaCacheParams) error {
+	_, err := q.db.Exec(ctx, upsertMediaCache, arg.Key, arg.Payload, arg.ExpiresAt)
+	return err
 }
 
 const upsertSocialCount = `-- name: UpsertSocialCount :exec

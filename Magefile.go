@@ -72,7 +72,10 @@ func DumpSchema() error {
 	// Better approach: use pg_dump directly if available, or via docker if we know the container name.
 	// Based on previous output, the container is newnixie-db-1.
 
-	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "exec", "db", "pg_dump", "-U", "nixie", "-d", "nixiedb", "--schema-only", "--no-owner", "--no-privileges")
+	// River keeps its tables in its own schema, and sqlc only needs nixie and
+	// config. Restrict the dump so River's tables never reach db/schema.sql
+	// (which would make sqlc generate models for them).
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "exec", "db", "pg_dump", "-U", "nixie", "-d", "nixiedb", "--schema-only", "--no-owner", "--no-privileges", "--schema=nixie", "--schema=config")
 
 	// Filter out \restrict and \unrestrict lines that sqlc doesn't like
 	// and also some other postgres-specific commands that might cause issues.

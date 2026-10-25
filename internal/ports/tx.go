@@ -22,3 +22,17 @@ type Transaction interface {
 type UnitOfWork interface {
 	WithTx(ctx context.Context, fn func(ctx context.Context, tx Transaction) error) error
 }
+
+// JobArgs identifies a background job kind. It is structurally identical to
+// river.JobArgs, so values are assignable to River's Insert and InsertTx
+// without the ports package importing the River module.
+type JobArgs interface {
+	Kind() string
+}
+
+// JobQueue enqueues background work. InsertTx participates in the caller's
+// transaction, so the job is only visible if that transaction commits.
+type JobQueue interface {
+	Insert(ctx context.Context, args JobArgs) error
+	InsertTx(ctx context.Context, tx pgx.Tx, args JobArgs) error
+}
