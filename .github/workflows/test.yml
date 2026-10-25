@@ -1,8 +1,12 @@
 name: Test
 
-# Run on every branch push and every pull request.
+# Run on pull requests, and on pushes to main. Feature-branch pushes are not
+# tested separately: once a PR is open, the pull_request run covers them, so the
+# same commit isn't tested twice.
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 permissions:
