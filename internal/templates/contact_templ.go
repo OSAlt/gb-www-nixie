@@ -45,7 +45,7 @@ func ContactPage(subjects []string, newsletters []config.Newsletter) templ.Compo
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section id=\"contact-page\" class=\"py-5 mt-5\"><div class=\"container mt-5\"><div class=\"row\"><div class=\"col-md-7\"><h2 class=\"text-purple border-bottom border-purple pb-2 mb-4\">Contact Me</h2>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section id=\"contact-page\" class=\"py-5\"><div class=\"container\"><div class=\"page-intro\"><p class=\"eyebrow\">GET IN TOUCH</p><h1 class=\"page-title\">Contact Me</h1><p class=\"section-lead\">Sponsorships, speaking engagements, collaborations or newsletter questions — send a note and I’ll get back to you.</p></div><div class=\"row mt-5\"><div class=\"col-md-7\"><h2 class=\"section-title\">Send a message</h2>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -53,19 +53,19 @@ func ContactPage(subjects []string, newsletters []config.Newsletter) templ.Compo
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"col-md-5 mt-5 mt-md-0\"><h2 class=\"text-purple border-bottom border-purple pb-2 mb-4\">Newsletters</h2>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"col-md-5 mt-5 mt-md-0\"><h2 class=\"section-title\">Newsletters</h2>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, newsletter := range newsletters {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"card bg-dark text-light border-purple mb-4\"><div class=\"card-body text-center py-5\"><h3 class=\"card-title text-purple mb-4\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"card mb-4\"><div class=\"card-body text-center py-5\"><h3 class=\"card-title text-purple mb-4\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(newsletter.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 25, Col: 66}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 30, Col: 66}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -78,7 +78,7 @@ func ContactPage(subjects []string, newsletters []config.Newsletter) templ.Compo
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(newsletter.Description)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 26, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 31, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -91,20 +91,20 @@ func ContactPage(subjects []string, newsletters []config.Newsletter) templ.Compo
 				var templ_7745c5c3_Var5 templ.SafeURL
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(newsletter.URL))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 27, Col: 44}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 32, Col: 44}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" target=\"_blank\" class=\"btn btn-outline-purple btn-lg\">Subscribe to ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" target=\"_blank\" class=\"btn btn-cta\">Subscribe to ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(newsletter.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 27, Col: 131}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 32, Col: 113}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -154,7 +154,7 @@ func ContactForm(subjects []string) templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<form id=\"fs-frm\" name=\"department-contact-form\" accept-charset=\"utf-8\" action=\"https://formspree.io/f/xleadqng\" method=\"post\"><fieldset id=\"fs-frm-inputs\"><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"name\">Name</label> <input class=\"form-control bg-dark text-light border-purple\" type=\"text\" name=\"name\" id=\"name\" placeholder=\"Name\" required></div><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"email\">Email</label> <input class=\"form-control bg-dark text-light border-purple\" type=\"email\" name=\"_replyto\" id=\"email\" placeholder=\"user@domain.tld\" required></div><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"subject\">Subject</label> <select class=\"form-control bg-dark text-light border-purple\" name=\"subject\" id=\"subject\"><option value=\"Select\" disabled selected>Select</option> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<form id=\"fs-frm\" name=\"department-contact-form\" accept-charset=\"utf-8\" action=\"https://formspree.io/f/xleadqng\" method=\"post\"><fieldset id=\"fs-frm-inputs\"><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"name\">Name</label> <input class=\"form-control\" type=\"text\" name=\"name\" id=\"name\" placeholder=\"Name\" required></div><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"email\">Email</label> <input class=\"form-control\" type=\"email\" name=\"_replyto\" id=\"email\" placeholder=\"user@domain.tld\" required></div><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"subject\">Subject</label> <select class=\"form-control\" name=\"subject\" id=\"subject\"><option value=\"Select\" disabled selected>Select</option> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -166,7 +166,7 @@ func ContactForm(subjects []string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(subject)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 54, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 59, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 			if templ_7745c5c3_Err != nil {
@@ -179,7 +179,7 @@ func ContactForm(subjects []string) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(subject)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 54, Col: 41}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/contact.templ`, Line: 59, Col: 41}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -190,7 +190,7 @@ func ContactForm(subjects []string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</select></div><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"message\">Message</label> <textarea class=\"form-control bg-dark text-light border-purple\" name=\"message\" id=\"message\" rows=\"5\" placeholder=\"Message...\"></textarea></div><div class=\"text-center\"><input type=\"hidden\" name=\"_subject\" id=\"email-subject\" value=\"NixiePixel Contact Form Submission\"> <input id=\"submit\" type=\"submit\" value=\"Submit Message\" class=\"btn btn-lg btn-outline-purple mt-3\"></div></fieldset></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</select></div><div class=\"mb-4\"><label class=\"col-form-label-sm\" for=\"message\">Message</label> <textarea class=\"form-control\" name=\"message\" id=\"message\" rows=\"5\" placeholder=\"Message...\"></textarea></div><div class=\"text-center\"><input type=\"hidden\" name=\"_subject\" id=\"email-subject\" value=\"NixiePixel Contact Form Submission\"> <input id=\"submit\" type=\"submit\" value=\"Submit Message\" class=\"btn btn-cta btn-lg mt-3\"></div></fieldset></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -219,7 +219,7 @@ func ContactSuccess() templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"alert alert-success bg-dark text-light border-purple text-center\">Your message has been sent successfully!</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div class=\"alert alert-success text-center\" role=\"status\">Your message has been sent successfully!</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

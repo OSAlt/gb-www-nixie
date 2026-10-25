@@ -14,19 +14,12 @@ import (
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/contact"
 	db_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/db"
 	http_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/http"
+	"github.com/OSAlt/gb-www-nixie/internal/adapters/media"
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/social"
 	"github.com/OSAlt/gb-www-nixie/internal/config"
-	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/OSAlt/gb-www-nixie/internal/ports"
 	"github.com/jackc/pgx/v5"
 )
-
-// mockMediaService is still needed as no real media adapter exists yet
-type mockMediaService struct{}
-
-func (s *mockMediaService) GetRecentPosts(ctx context.Context, count int) ([]domain.MediaPost, error) {
-	return []domain.MediaPost{}, nil
-}
 
 func main() {
 	cfg, err := config.Load()
@@ -36,7 +29,7 @@ func main() {
 	}
 
 	// Wiring
-	mediaSvc := &mockMediaService{}
+	mediaSvc := media.NewService(cfg)
 
 	// Use real DB if DATABASE_URL is provided, otherwise mock
 	var dbSvc ports.DBService

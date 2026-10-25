@@ -271,14 +271,16 @@ strong {
     transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.btn-cta {
+/* Black ink on cyan, everywhere. The .btn prefix outranks container rules
+   such as `.footer-col a`, which would otherwise recolor the label. */
+.btn.btn-cta {
     background: var(--cyan);
     border: 1px solid var(--cyan);
     color: var(--bg);
 }
 
-.btn-cta:hover,
-.btn-cta:focus {
+.btn.btn-cta:hover,
+.btn.btn-cta:focus {
     background: #67e8f9;
     border-color: #67e8f9;
     color: var(--bg);
@@ -911,6 +913,34 @@ strong {
     font-family: var(--font-display);
 }
 
+/* Social platform cards: same lift as the home-page cards. The cyan edge is
+   a hover state only. */
+.social-card {
+    border: 1px solid var(--border);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.social-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--cyan);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 18px rgba(34, 211, 238, 0.25);
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.social-card:hover .social-link,
+.social-card:hover .social-link .fab {
+    color: var(--cyan);
+}
+
 .form-control,
 .form-select {
     background-color: var(--surface-2);
@@ -963,10 +993,34 @@ strong {
     color: var(--text);
 }
 
+.alert-success {
+    background-color: var(--surface-2);
+    border-color: var(--lime);
+    color: var(--text);
+}
+
 .pagination .page-link {
     background-color: var(--surface-2);
     border-color: var(--border);
     color: var(--purple);
+}
+
+.pagination .page-link:hover {
+    background-color: var(--purple-soft);
+    border-color: var(--purple);
+    color: var(--text);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--purple);
+    border-color: var(--purple);
+    color: var(--bg);
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: var(--surface);
+    border-color: var(--border);
+    color: var(--muted);
 }
 
 .sub-nav {
@@ -1305,14 +1359,16 @@ strong {
     .btn-cta,
     .btn-ghost,
     .video-card,
-    .about-card {
+    .about-card,
+    .social-card {
         transition: none;
     }
 
     .btn-cta:hover,
     .btn-ghost:hover,
     .video-card:hover,
-    .about-card:hover {
+    .about-card:hover,
+    .social-card:hover {
         transform: none;
     }
 }

@@ -19,10 +19,11 @@ type Newsletter struct {
 }
 
 type Config struct {
-	Port        string       `koanf:"port"`
-	DatabaseURL string       `koanf:"database_url"`
-	BlogURLs    []string     `koanf:"blog_urls"`
-	Newsletters []Newsletter `koanf:"newsletters"`
+	Port          string       `koanf:"port"`
+	DatabaseURL   string       `koanf:"database_url"`
+	BlogURLs      []string     `koanf:"blog_urls"`
+	MediaFeedURLs []string     `koanf:"media_feed_urls"`
+	Newsletters   []Newsletter `koanf:"newsletters"`
 
 	// Social follower-count metrics (see doc/social_migration.md).
 	// Metrika consolidates every platform behind one free API key. When it is
@@ -83,6 +84,15 @@ func Load() (*Config, error) {
 	// Set defaults if not provided
 	if cfg.Port == "" {
 		cfg.Port = "8080"
+	}
+
+	// Latest-video feeds for the home page: NixiePixel and NixieDoesLinux.
+	// Override with media_feed_urls when the channels change.
+	if len(cfg.MediaFeedURLs) == 0 {
+		cfg.MediaFeedURLs = []string{
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCMyAVYPgP_179gj9OIJZd4A",
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCBE-FO9JUOghSysV9gjTeHw",
+		}
 	}
 
 	// Social metrics defaults
