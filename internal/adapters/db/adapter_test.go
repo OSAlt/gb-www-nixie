@@ -25,11 +25,27 @@ var testDSN string
 func TestMain(m *testing.M) {
 	flag.Parse()
 	if testing.Short() {
-		// `go test -short ./...` should work without Docker.
+		// `go test -short ./...` should work without Docker or a database.
 		os.Exit(m.Run())
 	}
 
 	ctx := context.Background()
+
+	// CI sets TEST_DATABASE_URL to a database supplied by the pipeline (for
+	// example a GitLab service). Locally, testcontainers starts one instead.
+	// The tests truncate tables, so never point this at the dev database.
+	if dsn := os.Getenv("TEST_DATABASE_URL"); dsn != "" {
+		if err := waitForDatabase(ctx, dsn, 30*time.Second); err != nil {
+			fmt.Fprintf(os.Stderr, "TEST_DATABASE_URL is set but unusable: %v\n", err)
+			os.Exit(1)
+		}
+		if err := RunMigrations(dsn, migrationsDir()); err != nil {
+			fmt.Fprintf(os.Stderr, "TEST_DATABASE_URL migrations failed: %v\n", err)
+			os.Exit(1)
+		}
+		testDSN = dsn
+		os.Exit(m.Run())
+	}
 
 	container, err := postgres.Run(ctx, "postgres:16-alpine",
 		postgres.WithDatabase("nixiedb"),
@@ -59,6 +75,32 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	_ = testcontainers.TerminateContainer(container)
 	os.Exit(code)
+}
+
+// waitForDatabase retries until the DSN is reachable, so tests do not race a
+// database container or CI service that is still starting.
+func waitForDatabase(ctx context.Context, dsn string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+	for {
+		conn, err := pgx.Connect(ctx, dsn)
+		if err == nil {
+			err = conn.Ping(ctx)
+			_ = conn.Close(ctx)
+			if err == nil {
+				return nil
+			}
+		}
+		lastErr = err
+		if time.Now().After(deadline) {
+			return fmt.Errorf("database not reachable after %s: %w", timeout, lastErr)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
 }
 
 // migrationsDir resolves db/migrations from the test file location, so tests

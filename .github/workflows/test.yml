@@ -1,0 +1,57 @@
+name: Test
+
+# Run on every branch push and every pull request.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l cmd internal Magefile.go)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      # Docker is available on ubuntu-latest, so internal/adapters/db starts
+      # its Postgres 16 testcontainer itself.
+      - name: Test
+        run: |
+          go test -race -count=1 -covermode=atomic -coverprofile=coverage.out \
+            $(go list ./... | grep -v '/internal/mocks$')
+
+      - name: Enforce coverage threshold
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/, "", $3); print $3}')
+          echo "Total coverage: ${total}%"
+          awk -v total="$total" 'BEGIN { if (total < 70) { printf "Coverage %.1f%% is below the 70%% threshold\n", total; exit 1 } }'
+
+      - name: Upload coverage profile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
