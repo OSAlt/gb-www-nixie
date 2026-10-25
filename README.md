@@ -1,5 +1,7 @@
 # Nixie Site (Go Version)
 
+[![Test](https://github.com/OSAlt/gb-www-nixie/actions/workflows/test.yml/badge.svg)](https://github.com/OSAlt/gb-www-nixie/actions/workflows/test.yml)[![Build and Publish Docker Image](https://github.com/OSAlt/gb-www-nixie/actions/workflows/publish.yml/badge.svg)](https://github.com/OSAlt/gb-www-nixie/actions/workflows/publish.yml)
+
 This is a modern reimplementation of the Nixie Site using:
 - **Go**: High-performance backend.
 - **HTMX**: For dynamic, AJAX-like interactions without complex JavaScript.
