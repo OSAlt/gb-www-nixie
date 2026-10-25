@@ -18,7 +18,7 @@ import (
 	"github.com/OSAlt/gb-www-nixie/internal/adapters/social"
 	"github.com/OSAlt/gb-www-nixie/internal/config"
 	"github.com/OSAlt/gb-www-nixie/internal/ports"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -31,8 +31,12 @@ func main() {
 	// Wiring
 	mediaSvc := media.NewService(cfg)
 
-	// Use real DB if DATABASE_URL is provided, otherwise mock
-	var dbSvc ports.DBService
+	// Use the real DB if DATABASE_URL is provided, otherwise no DB service is
+	// wired at all.
+	var (
+		dbSvc ports.DBService
+		uow   ports.UnitOfWork
+	)
 	if cfg.DatabaseURL != "" {
 		// Run migrations
 		migrationsDir := os.Getenv("MIGRATIONS_DIR")
@@ -43,11 +47,22 @@ func main() {
 			fmt.Printf("Warning: Failed to run migrations: %v\n", err)
 		}
 
-		conn, err := pgx.Connect(context.Background(), cfg.DatabaseURL)
+		pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+		if err == nil {
+			// pgxpool connects lazily, so ping to preserve the old behaviour of
+			// warning (and continuing without a DB) when the database is down.
+			if pingErr := pool.Ping(context.Background()); pingErr != nil {
+				err = pingErr
+				pool.Close()
+			}
+		}
 		if err != nil {
 			fmt.Printf("Warning: Unable to connect to database: %v. Using mock DB.\n", err)
 		} else {
-			dbSvc = db_adapter.NewAdapter(conn)
+			defer pool.Close()
+			adapter := db_adapter.NewAdapter(pool)
+			dbSvc = adapter
+			uow = adapter
 		}
 	}
 	contactSvc := contact.NewService(cfg, dbSvc)
@@ -56,7 +71,7 @@ func main() {
 	// Social follower-count refresh (see doc/social_migration.md)
 	if dbSvc != nil {
 		if fetcher, ok := newSocialAggregator(cfg); ok {
-			go runSocialMetricsWorker(context.Background(), dbSvc, fetcher, cfg)
+			go runSocialMetricsWorker(context.Background(), dbSvc, uow, fetcher, cfg)
 		}
 	}
 
@@ -174,10 +189,10 @@ func newSocialAggregator(cfg *config.Config) (*social.Aggregator, bool) {
 // runSocialMetricsWorker supervises the refresh loop. If it ever exits or
 // panics unexpectedly, it is restarted with exponential backoff instead of
 // leaving the chart frozen until the next deploy.
-func runSocialMetricsWorker(ctx context.Context, dbSvc ports.DBService, fetcher *social.Aggregator, cfg *config.Config) {
+func runSocialMetricsWorker(ctx context.Context, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator, cfg *config.Config) {
 	backoff := time.Minute
 	for {
-		err := runSocialMetricsLoop(ctx, dbSvc, fetcher, cfg)
+		err := runSocialMetricsLoop(ctx, dbSvc, uow, fetcher, cfg)
 		if ctx.Err() != nil {
 			// Shutting down; not a crash.
 			return
@@ -201,7 +216,7 @@ func runSocialMetricsWorker(ctx context.Context, dbSvc ports.DBService, fetcher 
 // The boot refresh is skipped when the stored data is newer than the interval,
 // so restarts and deploys do not spend Metrika requests on data that only
 // changes once a day.
-func runSocialMetricsLoop(ctx context.Context, dbSvc ports.DBService, fetcher *social.Aggregator, cfg *config.Config) (err error) {
+func runSocialMetricsLoop(ctx context.Context, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator, cfg *config.Config) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("panic in social metrics worker", "panic", r, "stack", string(debug.Stack()))
@@ -214,12 +229,12 @@ func runSocialMetricsLoop(ctx context.Context, dbSvc ports.DBService, fetcher *s
 
 	if last, lastErr := dbSvc.LastSocialRefresh(ctx); lastErr != nil {
 		slog.Warn("social metrics: cannot read last refresh time; refreshing now", "error", lastErr)
-		refreshSocialMetrics(ctx, dbSvc, fetcher)
+		refreshSocialMetrics(ctx, uow, fetcher)
 	} else if age := time.Since(last); age < interval {
 		fmt.Printf("social metrics: last refresh %s ago (< %s), skipping boot refresh\n",
 			age.Round(time.Minute), interval)
 	} else {
-		refreshSocialMetrics(ctx, dbSvc, fetcher)
+		refreshSocialMetrics(ctx, uow, fetcher)
 	}
 
 	ticker := time.NewTicker(interval)
@@ -229,14 +244,17 @@ func runSocialMetricsLoop(ctx context.Context, dbSvc ports.DBService, fetcher *s
 		case <-ctx.Done():
 			return nil
 		case <-ticker.C:
-			refreshSocialMetrics(ctx, dbSvc, fetcher)
+			refreshSocialMetrics(ctx, uow, fetcher)
 		}
 	}
 }
 
-// refreshSocialMetrics performs one refresh cycle. Panics are contained here as
-// well as in the fetchers, so a single bad cycle cannot stop the ticker.
-func refreshSocialMetrics(ctx context.Context, dbSvc ports.DBService, fetcher *social.Aggregator) {
+// refreshSocialMetrics performs one refresh cycle. All platform counts are
+// written in a single transaction, so a database error leaves every stored
+// value on the previous (last-known-good) refresh instead of a partial update.
+// Panics are contained here as well as in the fetchers, so a single bad cycle
+// cannot stop the ticker.
+func refreshSocialMetrics(ctx context.Context, uow ports.UnitOfWork, fetcher *social.Aggregator) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("panic during social metrics refresh", "panic", r, "stack", string(debug.Stack()))
@@ -248,11 +266,21 @@ func refreshSocialMetrics(ctx context.Context, dbSvc ports.DBService, fetcher *s
 		fmt.Printf("social metrics: no platform fetches succeeded; keeping last-known-good values\n")
 		return
 	}
-	for platform, followers := range counts {
-		if err := dbSvc.UpsertSocialCount(ctx, platform, followers); err != nil {
-			slog.Warn("social metrics upsert failed", "platform", platform, "error", err)
-			continue
+
+	err := uow.WithTx(ctx, func(ctx context.Context, tx ports.Transaction) error {
+		for platform, followers := range counts {
+			if err := tx.UpsertSocialCount(ctx, platform, followers); err != nil {
+				return fmt.Errorf("upsert %s: %w", platform, err)
+			}
 		}
+		return nil
+	})
+	if err != nil {
+		slog.Warn("social metrics refresh failed; keeping last-known-good values", "error", err)
+		return
+	}
+
+	for platform, followers := range counts {
 		fmt.Printf("social metrics: %s = %d\n", platform, followers)
 	}
 }
