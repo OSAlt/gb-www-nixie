@@ -1,0 +1,21 @@
+# Regenerate with `mage mocks` (or `mage generate`).
+# Mocks live in internal/mocks and replace hand-written test doubles.
+with-expecter: true
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+dir: "internal/mocks"
+outpkg: "mocks"
+filename: "mock_{{.InterfaceName}}.go"
+mockname: "Mock{{.InterfaceName}}"
+packages:
+  github.com/OSAlt/gb-www-nixie/internal/ports:
+    interfaces:
+      MediaService:
+      ContactService:
+      DBService:
+      BlogService:
+  github.com/OSAlt/gb-www-nixie/internal/adapters/social:
+    interfaces:
+      Fetcher:
+      BulkFetcher:

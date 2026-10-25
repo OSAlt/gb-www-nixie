@@ -10,6 +10,19 @@ services:
       - "8080:8080"
     env_file:
       - .env
+    # Restart the process if it ever dies (panic, OOM, host reboot) without
+    # touching a container that was deliberately stopped.
+    restart: unless-stopped
+    # /api/v1/social/health returns 200 with "status":"degraded" when a platform
+    # has not refreshed within two intervals; the grep turns that into a Docker
+    # "unhealthy" state so it is visible in `docker ps` and to uptime monitors.
+    # It does not force a restart, so a slow upstream never causes a loop.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/social/health | grep -q '\"status\":\"ok\"'"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     volumes:
       - ./db/migrations:/app/db/migrations
       - ./config:/app/config/

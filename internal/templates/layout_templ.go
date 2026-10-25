@@ -58,7 +58,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script><script src=\"https://kit.fontawesome.com/4d9859e450.js\" crossorigin=\"anonymous\"></script><!-- amCharts for Stats --><script src=\"/static/js/core.js\"></script><script src=\"/static/js/charts.js\"></script><script src=\"/static/js/animated.js\"></script><script src=\"/static/js/stats.js?v=3\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</main><script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js\"></script><script src=\"https://kit.fontawesome.com/4d9859e450.js\" crossorigin=\"anonymous\"></script><!-- amCharts for Stats --><script src=\"/static/js/core.js\"></script><script src=\"/static/js/charts.js\"></script><script src=\"/static/js/animated.js\"></script><script src=\"/static/js/stats.js?v=4\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

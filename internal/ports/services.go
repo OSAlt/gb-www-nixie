@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
 )
@@ -17,7 +18,13 @@ type ContactService interface {
 type DBService interface {
 	ListContacts(ctx context.Context, domain string) ([]domain.ContactMessage, error)
 	GetSocialCounts(ctx context.Context) (map[string]int, error)
-	GetInstagramActivity(ctx context.Context, limit int) ([]any, error)
+	// GetSocialMetricStates returns each platform's count and the time it was
+	// last refreshed, which the health endpoint uses for staleness checks.
+	GetSocialMetricStates(ctx context.Context) ([]domain.SocialMetricState, error)
+	UpsertSocialCount(ctx context.Context, platform string, followers int) error
+	// LastSocialRefresh is the newest refreshed_at across all platforms; it
+	// lets the worker skip a boot fetch when stored data is still fresh.
+	LastSocialRefresh(ctx context.Context) (time.Time, error)
 }
 
 type BlogService interface {

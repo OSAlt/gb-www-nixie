@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getSocialAppByType = `-- name: GetSocialAppByType :one
@@ -27,6 +29,30 @@ func (q *Queries) GetSocialAppByType(ctx context.Context, socialAppType string) 
 	return i, err
 }
 
+const getSocialCounts = `-- name: GetSocialCounts :many
+SELECT platform, followers, refreshed_at FROM nixie.social_metrics
+`
+
+func (q *Queries) GetSocialCounts(ctx context.Context) ([]NixieSocialMetric, error) {
+	rows, err := q.db.Query(ctx, getSocialCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []NixieSocialMetric
+	for rows.Next() {
+		var i NixieSocialMetric
+		if err := rows.Scan(&i.Platform, &i.Followers, &i.RefreshedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserSocialByApp = `-- name: GetUserSocialByApp :one
 SELECT user_social_id, app_id, user_id, meta_data, access_token, secret_token FROM config.user_social
 WHERE app_id = $1
@@ -44,6 +70,18 @@ func (q *Queries) GetUserSocialByApp(ctx context.Context, appID int64) (ConfigUs
 		&i.SecretToken,
 	)
 	return i, err
+}
+
+const lastSocialRefresh = `-- name: LastSocialRefresh :one
+SELECT COALESCE(max(refreshed_at), 'epoch'::timestamptz)::timestamptz AS refreshed_at
+FROM nixie.social_metrics
+`
+
+func (q *Queries) LastSocialRefresh(ctx context.Context) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, lastSocialRefresh)
+	var refreshed_at pgtype.Timestamptz
+	err := row.Scan(&refreshed_at)
+	return refreshed_at, err
 }
 
 const listContacts = `-- name: ListContacts :many
@@ -104,4 +142,22 @@ func (q *Queries) ListSocialApps(ctx context.Context) ([]ConfigSocialApp, error)
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertSocialCount = `-- name: UpsertSocialCount :exec
+INSERT INTO nixie.social_metrics (platform, followers, refreshed_at)
+VALUES ($1, $2, now())
+ON CONFLICT (platform) DO UPDATE
+    SET followers = EXCLUDED.followers,
+        refreshed_at = EXCLUDED.refreshed_at
+`
+
+type UpsertSocialCountParams struct {
+	Platform  string
+	Followers int64
+}
+
+func (q *Queries) UpsertSocialCount(ctx context.Context, arg UpsertSocialCountParams) error {
+	_, err := q.db.Exec(ctx, upsertSocialCount, arg.Platform, arg.Followers)
+	return err
 }

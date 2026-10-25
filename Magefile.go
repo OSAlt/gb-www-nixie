@@ -37,6 +37,20 @@ func Generate() error {
 	cmd.Dir = "."
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	return Mocks()
+}
+
+// Mocks regenerates the interface mocks used by the tests.
+func Mocks() error {
+	fmt.Println("Generating mocks...")
+	cmd := exec.Command("go", "run", "-modfile", "tools/go.mod", "github.com/vektra/mockery/v2", "--config", ".mockery.yaml")
+	cmd.Dir = "."
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
@@ -108,7 +122,7 @@ func Goose(arg string) error {
 		return fmt.Errorf("DATABASE_URL environment variable is not set")
 	}
 
-	args := []string{"run", "-modfile", "tools/go.mod", "github.com/pressly/goose/v3/cmd/goose", "-dir", "db/migrations", "postgres", dsn}
+	args := []string{"run", "-modfile", "tools/go.mod", "github.com/pressly/goose/v3/cmd/goose", "-dir", "db/migrations", "-table", "nixie.goose_db_version", "postgres", dsn}
 	// Split by space to support multiple arguments in one string
 	args = append(args, strings.Fields(arg)...)
 
