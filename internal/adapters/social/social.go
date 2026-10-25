@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"runtime/debug"
 	"sync"
@@ -83,9 +84,7 @@ func (a *Aggregator) Fetch(ctx context.Context) map[string]int {
 			slog.Warn("social bulk fetch failed", "source", b.Name(), "error", err)
 			continue
 		}
-		for platform, count := range counts {
-			out[platform] = count
-		}
+		maps.Copy(out, counts)
 	}
 
 	// Read-only once the goroutines start.

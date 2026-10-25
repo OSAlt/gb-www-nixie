@@ -164,16 +164,20 @@ func TestSocialMetricsWorker_RequiresDependencies(t *testing.T) {
 }
 
 func TestPeriodicJobs(t *testing.T) {
-	cfg := &config.Config{SocialRefreshSeconds: 86400}
+	cfg := &config.Config{SocialRefreshSeconds: 86400, MediaRefreshSeconds: 1800}
+	fetcher := social.NewAggregator()
 
-	if jobs := PeriodicJobs(cfg, nil); len(jobs) != 0 {
-		t.Fatalf("PeriodicJobs with no fetcher = %d jobs, want 0", len(jobs))
+	if jobs := PeriodicJobs(Deps{}); len(jobs) != 0 {
+		t.Fatalf("PeriodicJobs with no deps = %d jobs, want 0", len(jobs))
 	}
-	if jobs := PeriodicJobs(cfg, social.NewAggregator()); len(jobs) != 1 {
-		t.Fatalf("PeriodicJobs = %d jobs, want 1", len(jobs))
+	if jobs := PeriodicJobs(Deps{Config: cfg, SocialFetcher: fetcher}); len(jobs) != 1 {
+		t.Fatalf("PeriodicJobs with only social = %d jobs, want 1", len(jobs))
 	}
-	if jobs := PeriodicJobs(nil, social.NewAggregator()); len(jobs) != 0 {
-		t.Fatalf("PeriodicJobs with no config = %d jobs, want 0", len(jobs))
+	if jobs := PeriodicJobs(Deps{Config: cfg, MediaRefresher: mocks.NewMockMediaRefresher(t)}); len(jobs) != 1 {
+		t.Fatalf("PeriodicJobs with only media = %d jobs, want 1", len(jobs))
+	}
+	if jobs := PeriodicJobs(Deps{Config: cfg, SocialFetcher: fetcher, MediaRefresher: mocks.NewMockMediaRefresher(t)}); len(jobs) != 2 {
+		t.Fatalf("PeriodicJobs = %d jobs, want 2", len(jobs))
 	}
 }
 

@@ -5,20 +5,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/config"
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
+	"github.com/OSAlt/gb-www-nixie/internal/ports"
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 const (
-	cacheTTL       = 30 * time.Minute
+	cacheTTL            = 30 * time.Minute
+	defaultRefreshCount = 10
+	fetchTimeout        = 8 * time.Second
+
+	// MediaCacheKey is the row the home page reads and the refresh job writes.
+	MediaCacheKey = "youtube:recent"
+
 	youtubeAPIBase = "https://www.googleapis.com"
 )
 
@@ -33,20 +44,40 @@ type cacheEntry struct {
 // configured, and otherwise (or on API failure) falls back to public
 // YouTube/Atom feeds. It is deliberately tolerant: the home page hides the
 // video section when nothing is available.
+//
+// With a MediaCacheStore the service becomes read-through: request paths serve
+// the last-known-good payload written by the refresh job and never call the
+// upstream API. Without a store it keeps the old in-process behaviour, but
+// serves expired data immediately and refreshes in the background instead of
+// blocking the request.
 type Service struct {
 	cfg     *config.Config
 	apiBase string
 	client  *http.Client
-	cache   cacheEntry
-	mu      sync.RWMutex
+	store   ports.MediaCacheStore
+
+	mu        sync.RWMutex
+	cache     cacheEntry
+	playlists map[string]string // channel -> uploads playlist ID
+
+	refreshing atomic.Bool
+	group      singleflight.Group
 }
 
 func NewService(cfg *config.Config) *Service {
 	return &Service{
-		cfg:     cfg,
-		apiBase: youtubeAPIBase,
-		client:  &http.Client{Timeout: 8 * time.Second},
+		cfg:       cfg,
+		apiBase:   youtubeAPIBase,
+		client:    &http.Client{Timeout: fetchTimeout},
+		playlists: make(map[string]string),
 	}
+}
+
+// WithStore makes the service read and write through a shared cache. It must
+// be called before the service is used concurrently.
+func (s *Service) WithStore(store ports.MediaCacheStore) *Service {
+	s.store = store
+	return s
 }
 
 func (s *Service) GetRecentPosts(ctx context.Context, count int) ([]domain.MediaPost, error) {
@@ -54,28 +85,174 @@ func (s *Service) GetRecentPosts(ctx context.Context, count int) ([]domain.Media
 		return nil, nil
 	}
 
-	s.mu.RLock()
-	if time.Now().Before(s.cache.expiresAt) {
-		posts := limit(s.cache.posts, count)
-		s.mu.RUnlock()
-		return posts, nil
+	// The shared cache is the source of truth when configured. Expiry is not
+	// checked here: showing slightly old videos beats showing none, and the
+	// refresh job owns freshness.
+	if posts, ok := s.fromStore(ctx); ok {
+		return limit(posts, count), nil
 	}
+
+	s.mu.RLock()
+	entry := s.cache
 	s.mu.RUnlock()
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Double check after acquiring the write lock.
-	if time.Now().Before(s.cache.expiresAt) {
-		return limit(s.cache.posts, count), nil
+	if len(entry.posts) > 0 {
+		if time.Now().Before(entry.expiresAt) {
+			return limit(entry.posts, count), nil
+		}
+		// Stale: answer immediately and refresh out of band.
+		s.refreshAsync(count)
+		return limit(entry.posts, count), nil
 	}
 
-	// The Data API is exact and does not depend on the public RSS endpoint,
-	// whose availability varies by network. Fall back to feeds when no key is
-	// configured or the API call fails.
-	posts, apiErr := s.fetchFromAPI(ctx, max(count, 10))
+	posts, err := s.refresh(ctx, count)
+	if err != nil {
+		return nil, err
+	}
+	return limit(posts, count), nil
+}
+
+// Refresh fetches the latest posts and stores them. It is a no-op while the
+// shared cache is fresh, so RunOnStart after a deploy costs nothing.
+func (s *Service) Refresh(ctx context.Context, count int) (int, error) {
+	if count <= 0 {
+		count = defaultRefreshCount
+	}
+
+	if s.store != nil {
+		entry, err := s.store.LoadMediaCache(ctx, MediaCacheKey)
+		switch {
+		case err == nil && time.Now().Before(entry.ExpiresAt):
+			slog.Info("media cache is fresh; skipping refresh", "expires_at", entry.ExpiresAt)
+			return 0, nil
+		case err != nil && !errors.Is(err, ports.ErrMediaCacheMiss):
+			slog.Warn("media cache read failed; refreshing anyway", "error", err)
+		}
+	}
+
+	posts, err := s.forceRefresh(ctx, count)
+	if err != nil {
+		return 0, err
+	}
+	if len(posts) == 0 {
+		return 0, errors.New("media: no posts available")
+	}
+	return len(posts), nil
+}
+
+// fromStore returns the cached payload when one is present. A miss, an
+// unreadable row, or invalid JSON all fall through to the in-memory path.
+func (s *Service) fromStore(ctx context.Context) ([]domain.MediaPost, bool) {
+	if s.store == nil {
+		return nil, false
+	}
+
+	entry, err := s.store.LoadMediaCache(ctx, MediaCacheKey)
+	if err != nil {
+		if !errors.Is(err, ports.ErrMediaCacheMiss) {
+			slog.Warn("media cache read failed", "error", err)
+		}
+		return nil, false
+	}
+
+	var posts []domain.MediaPost
+	if err := json.Unmarshal(entry.Payload, &posts); err != nil {
+		slog.Warn("media cache payload is invalid", "error", err)
+		return nil, false
+	}
+	if len(posts) == 0 {
+		return nil, false
+	}
+	return posts, true
+}
+
+func (s *Service) refresh(ctx context.Context, count int) ([]domain.MediaPost, error) {
+	return s.doRefresh(ctx, count, "refresh", false)
+}
+
+func (s *Service) forceRefresh(ctx context.Context, count int) ([]domain.MediaPost, error) {
+	return s.doRefresh(ctx, count, "force-refresh", true)
+}
+
+// doRefresh collapses concurrent refreshes into one fetch. force skips the
+// in-memory freshness check (used by the refresh job, which decides freshness
+// from the shared cache instead).
+func (s *Service) doRefresh(ctx context.Context, count int, key string, force bool) ([]domain.MediaPost, error) {
+	v, err, _ := s.group.Do(key, func() (any, error) {
+		if !force {
+			s.mu.RLock()
+			fresh := len(s.cache.posts) > 0 && time.Now().Before(s.cache.expiresAt)
+			posts := s.cache.posts
+			s.mu.RUnlock()
+			if fresh {
+				return posts, nil
+			}
+		}
+
+		posts := s.fetch(ctx, count)
+		if len(posts) == 0 {
+			// A total upstream failure is not cached, so the next attempt (or
+			// retry) can recover immediately.
+			return []domain.MediaPost(nil), nil
+		}
+
+		expiresAt := time.Now().Add(s.ttl())
+		s.mu.Lock()
+		s.cache = cacheEntry{posts: posts, expiresAt: expiresAt}
+		s.mu.Unlock()
+
+		if s.store != nil {
+			payload, err := json.Marshal(posts)
+			if err != nil {
+				return nil, fmt.Errorf("encode media cache: %w", err)
+			}
+			if err := s.store.SaveMediaCache(ctx, MediaCacheKey, payload, expiresAt); err != nil {
+				return nil, fmt.Errorf("save media cache: %w", err)
+			}
+		}
+		return posts, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if v == nil {
+		return nil, nil
+	}
+	return v.([]domain.MediaPost), nil
+}
+
+// refreshAsync serves the stale cache and warms it in the background. Only one
+// goroutine runs at a time; further stale reads keep serving the old data.
+func (s *Service) refreshAsync(count int) {
+	if !s.refreshing.CompareAndSwap(false, true) {
+		return
+	}
+	go func() {
+		defer s.refreshing.Store(false)
+		// The request context is gone by the time the response is written, so
+		// the background refresh owns its own deadline.
+		ctx, cancel := context.WithTimeout(context.Background(), 2*fetchTimeout)
+		defer cancel()
+		if _, err := s.refresh(ctx, count); err != nil {
+			slog.Warn("background media refresh failed", "error", err)
+		}
+	}()
+}
+
+func (s *Service) ttl() time.Duration {
+	if s.cfg != nil && s.cfg.MediaRefreshSeconds > 0 {
+		return time.Duration(s.cfg.MediaRefreshSeconds) * time.Second
+	}
+	return cacheTTL
+}
+
+// fetch asks the Data API first and falls back to feeds. It never returns an
+// error: a total failure yields no posts, which callers treat as "nothing to
+// cache" rather than a request failure.
+func (s *Service) fetch(ctx context.Context, count int) []domain.MediaPost {
+	posts, apiErr := s.fetchFromAPI(ctx, max(count, defaultRefreshCount))
 	if apiErr != nil && !errors.Is(apiErr, errNoAPIKey) {
-		fmt.Printf("Warning: YouTube API media fetch failed: %v\n", apiErr)
+		slog.Warn("youtube api media fetch failed", "error", apiErr)
 	}
 	if len(posts) == 0 {
 		feedPosts, successes := s.fetchFeeds(ctx)
@@ -83,15 +260,7 @@ func (s *Service) GetRecentPosts(ctx context.Context, count int) ([]domain.Media
 			posts = feedPosts
 		}
 	}
-
-	if len(posts) > 0 {
-		s.cache = cacheEntry{
-			posts:     posts,
-			expiresAt: time.Now().Add(cacheTTL),
-		}
-	}
-
-	return limit(posts, count), nil
+	return posts
 }
 
 // fetchFeeds merges the configured Atom/RSS feeds. It returns the number of
@@ -107,7 +276,7 @@ func (s *Service) fetchFeeds(ctx context.Context) ([]domain.MediaPost, int) {
 	for _, feedURL := range s.cfg.MediaFeedURLs {
 		feed, err := fp.ParseURLWithContext(feedURL, ctx)
 		if err != nil {
-			fmt.Printf("Warning: failed to fetch media feed from %s: %v\n", feedURL, err)
+			slog.Warn("failed to fetch media feed", "url", feedURL, "error", err)
 			continue
 		}
 		successes++
@@ -138,20 +307,32 @@ func (s *Service) fetchFromAPI(ctx context.Context, count int) ([]domain.MediaPo
 		return nil, fmt.Errorf("no youtube channels configured")
 	}
 
+	// Channels are independent, so fetch them concurrently. Results are kept
+	// per channel and merged in config order to keep sorting deterministic.
+	results := make([][]mediaItem, len(channels))
+	group, groupCtx := errgroup.WithContext(ctx)
+	for i, channel := range channels {
+		group.Go(func() error {
+			playlistID, err := s.uploadsPlaylist(groupCtx, channel)
+			if err != nil {
+				return fmt.Errorf("channel %q: %w", channel, err)
+			}
+
+			items, err := s.playlistItems(groupCtx, playlistID, count)
+			if err != nil {
+				return fmt.Errorf("channel %q playlist: %w", channel, err)
+			}
+			results[i] = items
+			return nil
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return nil, err
+	}
+
 	var items []mediaItem
 	seen := make(map[string]struct{})
-
-	for _, channel := range channels {
-		playlistID, err := s.uploadsPlaylist(ctx, channel)
-		if err != nil {
-			return nil, fmt.Errorf("channel %q: %w", channel, err)
-		}
-
-		channelItems, err := s.playlistItems(ctx, playlistID, count)
-		if err != nil {
-			return nil, fmt.Errorf("channel %q playlist: %w", channel, err)
-		}
-
+	for _, channelItems := range results {
 		for _, item := range channelItems {
 			key := dedupeKey(item.post)
 			if _, ok := seen[key]; ok {
@@ -172,8 +353,8 @@ func youTubeSelectors(channel string) []youTubeSelector {
 	if strings.HasPrefix(channel, "UC") {
 		return []youTubeSelector{{"id", channel}}
 	}
-	if strings.HasPrefix(channel, "user/") {
-		return []youTubeSelector{{"forUsername", strings.TrimPrefix(channel, "user/")}}
+	if after, ok := strings.CutPrefix(channel, "user/"); ok {
+		return []youTubeSelector{{"forUsername", after}}
 	}
 	return []youTubeSelector{
 		{"forHandle", handle},
@@ -181,7 +362,29 @@ func youTubeSelectors(channel string) []youTubeSelector {
 	}
 }
 
+// uploadsPlaylist resolves a channel's uploads playlist once and then serves it
+// from memory. The value is stable for the lifetime of a channel, so this
+// removes one channels.list call per channel per refresh after the first.
 func (s *Service) uploadsPlaylist(ctx context.Context, channel string) (string, error) {
+	s.mu.RLock()
+	playlistID, ok := s.playlists[channel]
+	s.mu.RUnlock()
+	if ok {
+		return playlistID, nil
+	}
+
+	playlistID, err := s.resolveUploadsPlaylist(ctx, channel)
+	if err != nil {
+		return "", err
+	}
+
+	s.mu.Lock()
+	s.playlists[channel] = playlistID
+	s.mu.Unlock()
+	return playlistID, nil
+}
+
+func (s *Service) resolveUploadsPlaylist(ctx context.Context, channel string) (string, error) {
 	var lastErr error
 	for _, sel := range youTubeSelectors(channel) {
 		reqURL := fmt.Sprintf("%s/youtube/v3/channels?part=contentDetails&%s=%s&key=%s",
@@ -395,3 +598,5 @@ func limit(posts []domain.MediaPost, count int) []domain.MediaPost {
 	}
 	return posts[:count]
 }
+
+var _ ports.MediaRefresher = (*Service)(nil)

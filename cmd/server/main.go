@@ -83,6 +83,12 @@ func main() {
 	contactSvc := contact.NewService(cfg, dbSvc)
 	blogSvc := blog.NewService(cfg)
 
+	// When a database is available, the media service reads the shared cache
+	// written by the refresh job and never calls YouTube from a request.
+	if store, ok := dbSvc.(ports.MediaCacheStore); ok {
+		mediaSvc.WithStore(store)
+	}
+
 	// Social follower-count refresh (see doc/social_migration.md). The
 	// aggregator is built here and handed to the River worker.
 	var socialFetcher *social.Aggregator
@@ -90,17 +96,17 @@ func main() {
 		if fetcher, ok := newSocialAggregator(cfg); ok {
 			socialFetcher = fetcher
 		} else {
-			slog.Info("no social sources configured; background jobs disabled")
+			slog.Info("no social sources configured; social refresh disabled")
 		}
 	}
 
-	// Background jobs. River needs its own schema and at least one worker, so
-	// it is only started when a database and a fetcher are both available.
+	// Background jobs. River needs its own schema and at least one worker; the
+	// media refresh worker is always registered, so a database is enough.
 	var riverClient *river.Client[pgx.Tx]
-	if pool != nil && socialFetcher != nil {
+	if pool != nil {
 		if err := db_adapter.MigrateRiver(ctx, pool); err != nil {
 			slog.Error("river migrations failed; background jobs disabled", "error", err)
-		} else if riverClient, err = startRiver(ctx, pool, cfg, dbSvc, uow, socialFetcher); err != nil {
+		} else if riverClient, err = startRiver(ctx, pool, cfg, dbSvc, uow, socialFetcher, mediaSvc); err != nil {
 			slog.Error("river client failed to start; background jobs disabled", "error", err)
 			riverClient = nil
 		}
@@ -138,7 +144,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           mux,
+		Handler:           withCacheHeaders(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -172,16 +178,33 @@ func main() {
 	slog.Info("shutdown complete")
 }
 
+// withCacheHeaders lets browsers and CDNs absorb repeat page views. JSON APIs
+// are left uncached because they expose live follower data.
+func withCacheHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isRead := r.Method == http.MethodGet || r.Method == http.MethodHead
+		if isRead &&
+			!strings.HasPrefix(r.URL.Path, "/api/") &&
+			!strings.HasPrefix(r.URL.Path, "/static/") {
+			w.Header().Set("Cache-Control", "public, max-age=60, stale-while-revalidate=300")
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // startRiver builds and starts the River client. Start is given a context that
 // does not cancel on SIGTERM: the client is stopped explicitly in main so
 // running jobs can finish (River's Stop waits for them).
-func startRiver(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator) (*river.Client[pgx.Tx], error) {
-	workers, err := jobs.NewWorkers(jobs.Deps{
-		Config:        cfg,
-		DB:            dbSvc,
-		UnitOfWork:    uow,
-		SocialFetcher: fetcher,
-	})
+func startRiver(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator, mediaRefresher ports.MediaRefresher) (*river.Client[pgx.Tx], error) {
+	deps := jobs.Deps{
+		Config:         cfg,
+		DB:             dbSvc,
+		UnitOfWork:     uow,
+		SocialFetcher:  fetcher,
+		MediaRefresher: mediaRefresher,
+	}
+
+	workers, err := jobs.NewWorkers(deps)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +212,7 @@ func startRiver(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, dbS
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		Schema:       db_adapter.RiverSchema,
 		Workers:      workers,
-		PeriodicJobs: jobs.PeriodicJobs(cfg, fetcher),
+		PeriodicJobs: jobs.PeriodicJobs(deps),
 		Queues: map[string]river.QueueConfig{
 			river.QueueDefault: {MaxWorkers: jobs.DefaultQueueMaxWorkers},
 		},

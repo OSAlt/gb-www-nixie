@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	latestMigration    = int64(2)
+	latestMigration    = int64(3)
 	seededPlatformRows = 7
 )
 
@@ -57,6 +57,7 @@ func TestRunMigrations_AppliesAllMigrations(t *testing.T) {
 	for _, table := range []string{
 		"nixie.contact_form",
 		"nixie.social_metrics",
+		"nixie.media_cache",
 		"config.social_app",
 		"config.social_app_type",
 		"config.user_social",
@@ -103,7 +104,8 @@ func TestRunMigrations_AppliesAllMigrations(t *testing.T) {
 // TestRunMigrations_AppliesMigrationBehindNewerVersion reproduces a deployed
 // database that recorded a newer migration version than the checked-in files
 // while the last migration's version was never recorded. Startup must replay
-// 002's real SQL without failing on the objects it already created.
+// the latest migration's real SQL without failing on the objects it already
+// created.
 func TestRunMigrations_AppliesMigrationBehindNewerVersion(t *testing.T) {
 	dsn := newDatabase(t)
 
@@ -121,7 +123,8 @@ func TestRunMigrations_AppliesMigrationBehindNewerVersion(t *testing.T) {
 	}
 
 	// The deployed database recorded a migration version newer than any
-	// checked-in file and never recorded 002 under its current version.
+	// checked-in file and never recorded the latest migration under its
+	// current version.
 	const legacyVersion = int64(20260215054924)
 	if _, err := db.ExecContext(ctx,
 		`INSERT INTO nixie.goose_db_version (version_id, is_applied) VALUES ($1, true)`,
@@ -149,7 +152,7 @@ func TestRunMigrations_AppliesMigrationBehindNewerVersion(t *testing.T) {
 		t.Errorf("migration %d was not recorded as applied", latestMigration)
 	}
 
-	// The replayed 002 must tolerate the existing table and rows.
+	// The replayed migration must tolerate the existing table and rows.
 	var youtube int
 	if err := db.QueryRowContext(ctx,
 		`SELECT followers FROM nixie.social_metrics WHERE platform = 'youtube'`).Scan(&youtube); err != nil {
@@ -170,7 +173,8 @@ func TestRunMigrations_AppliesMigrationBehindNewerVersion(t *testing.T) {
 
 // TestRunMigrations_RollbackLatestMigration verifies that the most recent
 // migration has a working Down section: rolling it back removes only the
-// objects it created, leaves migration 001 in place, and can be re-applied.
+// objects it created, leaves earlier migrations in place, and can be
+// re-applied.
 func TestRunMigrations_RollbackLatestMigration(t *testing.T) {
 	dsn := newDatabase(t)
 	if err := RunMigrations(dsn, migrationsDir()); err != nil {
@@ -197,27 +201,30 @@ func TestRunMigrations_RollbackLatestMigration(t *testing.T) {
 		t.Errorf("rolled back migration %d, want %d", result.Source.Version, latestMigration)
 	}
 
-	// 002 owns social_metrics, so it must be gone.
-	if tableExists(t, db, "nixie.social_metrics") {
-		t.Error("nixie.social_metrics still exists after rolling back 002")
+	// 003 owns media_cache, so it must be gone.
+	if tableExists(t, db, "nixie.media_cache") {
+		t.Error("nixie.media_cache still exists after rolling back 003")
 	}
-	// 001 still owns contact_form and the config schema.
+	// 002 still owns social_metrics; 001 owns contact_form and the config schema.
+	if !tableExists(t, db, "nixie.social_metrics") {
+		t.Error("nixie.social_metrics should survive rolling back 003")
+	}
 	if !tableExists(t, db, "nixie.contact_form") {
-		t.Error("nixie.contact_form should survive rolling back 002")
+		t.Error("nixie.contact_form should survive rolling back 003")
 	}
 	if !tableExists(t, db, "config.social_app") {
-		t.Error("config.social_app should survive rolling back 002")
+		t.Error("config.social_app should survive rolling back 003")
 	}
 
 	version, err := provider.GetDBVersion(ctx)
 	if err != nil {
 		t.Fatalf("GetDBVersion: %v", err)
 	}
-	if version != 1 {
-		t.Errorf("goose version after rollback = %d, want 1", version)
+	if version != 2 {
+		t.Errorf("goose version after rollback = %d, want 2", version)
 	}
 
-	// Re-applying restores the table and its seeds.
+	// Re-applying restores the cache table.
 	results, err := provider.Up(ctx)
 	if err != nil {
 		t.Fatalf("re-apply migrations: %v", err)
@@ -225,8 +232,8 @@ func TestRunMigrations_RollbackLatestMigration(t *testing.T) {
 	if len(results) != 1 || results[0].Source.Version != latestMigration {
 		t.Fatalf("got %d re-applied migrations, want just %d", len(results), latestMigration)
 	}
-	if !tableExists(t, db, "nixie.social_metrics") {
-		t.Fatal("nixie.social_metrics was not recreated")
+	if !tableExists(t, db, "nixie.media_cache") {
+		t.Fatal("nixie.media_cache was not recreated")
 	}
 	var platforms int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM nixie.social_metrics`).Scan(&platforms); err != nil {

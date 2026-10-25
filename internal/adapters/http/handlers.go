@@ -99,10 +99,7 @@ func (h *Handler) Blog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := (page - 1) * pageSize
-	end := start + pageSize
-	if end > totalPosts {
-		end = totalPosts
-	}
+	end := min(start+pageSize, totalPosts)
 
 	var paginatedPosts []domain.BlogPost
 	if start < totalPosts {

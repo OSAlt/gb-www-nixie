@@ -37,8 +37,8 @@ func youTubeSelectors(channel string) []youTubeSelector {
 	if strings.HasPrefix(channel, "UC") {
 		return []youTubeSelector{{"id", channel}}
 	}
-	if strings.HasPrefix(channel, "user/") {
-		return []youTubeSelector{{"forUsername", strings.TrimPrefix(channel, "user/")}}
+	if after, ok := strings.CutPrefix(channel, "user/"); ok {
+		return []youTubeSelector{{"forUsername", after}}
 	}
 	return []youTubeSelector{
 		{"forHandle", handle},

@@ -19,10 +19,11 @@ const DefaultQueueMaxWorkers = 4
 // Deps is everything the workers need. Fields may be nil: a job whose
 // dependency is missing is simply not registered.
 type Deps struct {
-	Config        *config.Config
-	DB            ports.DBService
-	UnitOfWork    ports.UnitOfWork
-	SocialFetcher *social.Aggregator
+	Config         *config.Config
+	DB             ports.DBService
+	UnitOfWork     ports.UnitOfWork
+	SocialFetcher  *social.Aggregator
+	MediaRefresher ports.MediaRefresher
 }
 
 // NewWorkers registers every available worker.
@@ -40,21 +41,26 @@ func NewWorkers(deps Deps) (*river.Workers, error) {
 		}
 	}
 
+	if deps.Config != nil && deps.MediaRefresher != nil {
+		if err := river.AddWorkerSafely(workers, &MediaRefreshWorker{
+			Refresher: deps.MediaRefresher,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
 	return workers, nil
 }
 
-// PeriodicJobs returns the cron-like schedule. It is empty when the worker it
-// would enqueue is not registered, so an unconfigured deployment does not
-// accumulate jobs of an unknown kind.
-func PeriodicJobs(cfg *config.Config, fetcher *social.Aggregator) []*river.PeriodicJob {
-	if cfg == nil || fetcher == nil {
-		return nil
-	}
+// PeriodicJobs returns the cron-like schedule. A job is only scheduled when its
+// worker was registered, so an unconfigured deployment does not accumulate jobs
+// of an unknown kind.
+func PeriodicJobs(deps Deps) []*river.PeriodicJob {
+	var periodic []*river.PeriodicJob
 
-	interval := time.Duration(cfg.SocialRefreshSeconds) * time.Second
-
-	return []*river.PeriodicJob{
-		river.NewPeriodicJob(
+	if deps.Config != nil && deps.SocialFetcher != nil {
+		interval := time.Duration(deps.Config.SocialRefreshSeconds) * time.Second
+		periodic = append(periodic, river.NewPeriodicJob(
 			river.PeriodicInterval(interval),
 			func() (river.JobArgs, *river.InsertOpts) {
 				return SocialMetricsArgs{}, &river.InsertOpts{
@@ -68,6 +74,22 @@ func PeriodicJobs(cfg *config.Config, fetcher *social.Aggregator) []*river.Perio
 			// the worker's freshness guard makes that free when the data is
 			// already current.
 			&river.PeriodicJobOpts{RunOnStart: true},
-		),
+		))
 	}
+
+	if deps.Config != nil && deps.MediaRefresher != nil {
+		interval := time.Duration(deps.Config.MediaRefreshSeconds) * time.Second
+		periodic = append(periodic, river.NewPeriodicJob(
+			river.PeriodicInterval(interval),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return MediaRefreshArgs{}, &river.InsertOpts{
+					MaxAttempts: 3,
+					UniqueOpts:  river.UniqueOpts{ByPeriod: interval},
+				}
+			},
+			&river.PeriodicJobOpts{RunOnStart: true},
+		))
+	}
+
+	return periodic
 }

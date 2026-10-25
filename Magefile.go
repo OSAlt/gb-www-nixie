@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/joho/godotenv"
 
+	db_adapter "github.com/OSAlt/gb-www-nixie/internal/adapters/db"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/magefile/mage/mg"
 )
 
@@ -135,11 +138,36 @@ func Goose(arg string) error {
 	return cmd.Run()
 }
 
-// Migrate runs database migrations using goose up
+// Migrate runs database migrations using goose up, then applies River's own
+// migrations (the river schema) and refreshes db/schema.sql.
 func Migrate() error {
-	migErr := Goose("up")
+	if err := Goose("up"); err != nil {
+		return err
+	}
+	if err := MigrateRiver(); err != nil {
+		return err
+	}
 	DumpSchema()
-	return migErr
+	return nil
+}
+
+// MigrateRiver applies River's schema migrations without starting the app.
+func MigrateRiver() error {
+	readEnv()
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		return fmt.Errorf("DATABASE_URL environment variable is not set")
+	}
+
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+
+	fmt.Println("Running River migrations...")
+	return db_adapter.MigrateRiver(ctx, pool)
 }
 
 // MigrateCreate creates a new migration file
@@ -155,19 +183,19 @@ func MigrateCreate(name string) error {
 	return cmd.Run()
 }
 
-// DbUp starts the database container for development
+// DbUp starts the development services: Postgres and the River UI.
 func DbUp() error {
-	fmt.Println("Starting database...")
-	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "up", "-d", "db")
+	fmt.Println("Starting database and River UI...")
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "up", "-d", "db", "riverui")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
-// DbDown stops the database container for development
+// DbDown stops the development services.
 func DbDown() error {
-	fmt.Println("Stopping database...")
-	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "stop", "db")
+	fmt.Println("Stopping database and River UI...")
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.dev.yaml", "stop", "db", "riverui")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
