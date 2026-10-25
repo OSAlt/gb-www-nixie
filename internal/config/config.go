@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -50,9 +51,17 @@ func Load() (*Config, error) {
 	// Load .env if it exists (optional)
 	_ = godotenv.Load()
 
-	// Load default config.yaml
-	if err := k.Load(file.Provider("config/config.yaml"), yaml.Parser()); err != nil {
-		// It's okay if config.yaml is missing, we might rely solely on env vars
+	// Load the optional YAML config. config.yaml is the documented name, but
+	// accept config.yml too: the checked-in example template uses .yml, so a
+	// plain `cp config/config_example.yml config/config.yml` would otherwise be
+	// silently ignored.
+	for _, path := range []string{"config/config.yaml", "config/config.yml"} {
+		if _, err := os.Stat(path); err != nil {
+			continue
+		}
+		// It's okay if the file cannot be parsed; env vars still apply.
+		_ = k.Load(file.Provider(path), yaml.Parser())
+		break
 	}
 
 	// Load environment variables with a prefix if needed, or just all

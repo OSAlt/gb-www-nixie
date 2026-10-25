@@ -45,7 +45,25 @@ func Index(media []domain.MediaPost, subjects []string) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<a id=\"toTop\" href=\"#\" class=\"btn btn-light\"><i class=\"fas fa-angle-double-up\"></i></a><section id=\"intro\"><div id=\"headerImg\"></div><a href=\"#about\"><span class=\"fas fa-chevron-down\"></span></a></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<a id=\"toTop\" href=\"#\" class=\"btn btn-light\" aria-label=\"Back to top\"><i class=\"fas fa-angle-double-up\" aria-hidden=\"true\"></i></a><section class=\"hero\"><div class=\"hero-media\" aria-hidden=\"true\"><picture><source srcset=\"/static/imgs/hero.webp\" type=\"image/webp\"> <img src=\"/static/imgs/hero.jpg\" alt=\"\" width=\"2000\" height=\"761\" fetchpriority=\"high\"></picture></div><div class=\"container hero-inner\"><p class=\"eyebrow\"><span class=\"eyebrow-dot\" aria-hidden=\"true\"></span>LINUX · OPEN SOURCE · GAMING</p><h1 class=\"hero-title\">Linux, gaming and open source for <span class=\"hero-number\">410K+</span> tech viewers.</h1><p class=\"hero-sub\">I’m Nixie Pixel. I review the gear, test the stack and explain the tech — for an audience that builds, breaks and ships things.</p><div class=\"hero-actions\"><a class=\"btn btn-cta\" href=\"/portfolio#trusted-by\">Work with me <i class=\"fas fa-arrow-right\" aria-hidden=\"true\"></i></a> <a class=\"btn btn-ghost\" href=\"https://www.youtube.com/user/nixiedoeslinux\" target=\"_blank\" rel=\"noopener\">Watch latest</a></div><ul class=\"proof-chips\" aria-label=\"Audience highlights\"><li><span class=\"chip-number\">410K+</span><span class=\"chip-label\">followers</span></li><li><span class=\"chip-number\">75%</span><span class=\"chip-label\">work in tech</span></li><li><span class=\"chip-number\">10%</span><span class=\"chip-label\">sponsor CTR</span></li><li><span class=\"chip-number\">10 yr</span><span class=\"chip-label\">CES / GDC media</span></li></ul></div><div class=\"hero-llama\" aria-hidden=\"true\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = LlamaMark("llama-sticker").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></section><section class=\"trusted-strip\" aria-label=\"Brands and organizations Nixie Pixel has worked with\"><div class=\"container\"><p class=\"eyebrow\">TRUSTED BY</p><ul class=\"trusted-list\"><li>Google</li><li>AT&amp;T</li><li>Sony</li><li>Dell</li><li>Ford</li><li>Kodak</li><li>Logitech</li><li>Linode</li><li>ASRock</li><li>Audible</li><li>Skillshare</li></ul></div></section>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if len(media) > 0 {
+				templ_7745c5c3_Err = LatestVideos(media).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, " ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -53,9 +71,118 @@ func Index(media []domain.MediaPost, subjects []string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			templ_7745c5c3_Err = WorkWithMe().Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 			return nil
 		})
-		templ_7745c5c3_Err = Layout("NixiePixel").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Layout(
+			"Nixie Pixel — Linux, gaming and open source for 410K+ tech viewers",
+			"Nixie Pixel reviews Linux, gaming gear and open-source tools for 410,000+ followers — 75% of them work in tech. Work with me on your next campaign.",
+			"/",
+		).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func LatestVideos(media []domain.MediaPost) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<section id=\"videos\" class=\"section\"><div class=\"container\"><p class=\"eyebrow\">LATEST</p><h2 class=\"section-title\">Fresh from the channel</h2><div class=\"video-grid\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, post := range media {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<a class=\"video-card\" href=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 templ.SafeURL
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(post.URL))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/home.templ`, Line: 79, Col: 53}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" target=\"_blank\" rel=\"noopener\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if post.ImageURL != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<img src=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var5 string
+				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(post.ImageURL)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/home.templ`, Line: 81, Col: 31}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" alt=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var6 string
+				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(post.Caption)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/home.templ`, Line: 81, Col: 52}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" loading=\"lazy\"> ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"video-caption\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var7 string
+			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(post.Caption)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/home.templ`, Line: 83, Col: 48}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span></a>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -79,12 +206,41 @@ func About() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var3 == nil {
-			templ_7745c5c3_Var3 = templ.NopComponent
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<section id=\"about\" class=\"pb-4 pt-3\"><h1 class=\"text-purple text-center mt-2\">Who I Am & What I Do</h1><div id=\"introVideo\" class=\"text-center mb-4 ratio ratio-16x9 w-50 mx-auto\"><iframe src=\"https://www.youtube-nocookie.com/embed/bjGBk4iWstM\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div><p class=\"text-purple text-center opacity-75 w-75 mx-auto intro-text\">Passionate about open-source Nixie Pixel has been on the leading wave of advocacy for accessibility in tech through her work spanning over a decade.</p><p class=\"text-purple text-center opacity-75 w-75 mx-auto intro-text\">Nixie’s ability to engage, communicate, and really connect with her audiences onscreen and as a speaker has earned her multiple high-end sponsors and collaborators including AT&T, Ford, and Logitech. Also an entrepreneur, Nixie founded Equiti Games and GeekBeacon. GeekBeacon is an organically evolving, digital community resource focused on mental health awareness and accessibility of gaming and tech.</p><p class=\"text-purple text-center opacity-75 w-75 mx-auto intro-text\">In a world climate of instability, rapid change, and resource insecurity Nixie is working harder than ever to grow open-source culture and opportunity with her work.</p><hr class=\"w-25 mx-auto border-purple mb-5\"><div class=\"row justify-content-center g-4 text-light\"><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-purple h-100 p-4 text-center\"><div class=\"about-badge about-badge-purple mx-auto\"><i class=\"fas fa-video text-black\"></i></div><h4 class=\"text-blue text-center text-underline\">Show Host</h4><p>Show Host for Geekbuzz and OS.ALT on Rev3 (Discovery Channel) Prior G4TV and TechTV Affiliated</p><hr><h6 class=\"text-center text-underline\">Speaker/Panelist</h6><p>&bull; GDC (Game Developer Conference)</p><p>&bull; Zurich Game Festival</p><p>&bull; Penny Arcade Expo</p><p>&bull; GDC 10 Year Media</p><p>&bull; CES 10 Year Media</p><p>&bull; E3 8 Year Media</p></div></div><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-blue h-100 p-4 text-center\"><div class=\"about-badge about-badge-blue mx-auto\"><i class=\"fab fa-linux text-black\"></i></div><h4 class=\"text-blue text-center text-underline\">Content</h4><p>Demystifying coding, decoding gaming, and gamifying tech with her unique brand of approachable expertise. Taking her knack for making the inscrutable into the logical she has continued to grow her own path of bringing the often cryptic and complex world of coding to an audience of over 300,000 and growing.</p></div></div><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-green h-100 p-4 text-center\"><div class=\"about-badge about-badge-green mx-auto\"><i class=\"fas fa-handshake text-black\"></i></div><h4 class=\"text-blue text-center text-underline\">Sponsors</h4><p>Worked and collaborated with multiple high end sponsors including:</p><ul class=\"about-tags\"><li>AT&amp;T</li><li>Dell</li><li>Ford</li><li>Kodak</li><li>Logitech</li></ul></div></div><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-pink h-100 p-4 text-center\"><div class=\"about-badge about-badge-pink mx-auto\"><i class=\"fas fa-rocket text-black\"></i></div><h4 class=\"text-blue text-center text-underline\">Entrepreneur</h4><hr><p>&bull; Founded <a href=\"https://geekbeacon.org/\" target=\"_blank\">GeekBeacon</a>, a digital community resource and mental health awareness center.</p><p>&bull; Founded <a href=\"https://www.youtube.com/playlist?list=PLBe1BD1FneEaXI6qtXHS6cnZ33iQ_MhOE\" target=\"_blank\">GeeksAbroad</a>, a geeky travel show.</p><p>&bull; Founded <a href=\"https://gbfest.org/\" target=\"_blank\">GeekBeacon Festival</a>, a open-source conference!</p><p>&bull; Founded Equiti Games, An alternative distribution for games.</p></div></div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section id=\"about\" class=\"section\"><div class=\"container\"><p class=\"eyebrow\">ABOUT</p><h2 class=\"section-title\">Who I Am & What I Do</h2><div id=\"introVideo\" class=\"text-center mb-5 ratio ratio-16x9 mx-auto\"><iframe src=\"https://www.youtube-nocookie.com/embed/bjGBk4iWstM\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen loading=\"lazy\"></iframe></div><div class=\"about-copy\"><p class=\"intro-text\">Passionate about open source, Nixie Pixel has been on the leading wave of advocacy for accessibility in tech through work spanning over a decade.</p><p class=\"intro-text\">Nixie’s ability to engage, communicate and really connect with audiences onscreen and as a speaker has earned her multiple high-end sponsors and collaborators including AT&amp;T, Ford and Logitech. Also an entrepreneur, Nixie founded Equiti Games and GeekBeacon — an organically evolving digital community resource focused on mental health awareness and accessibility of gaming and tech.</p><p class=\"intro-text\">In a world climate of instability, rapid change and resource insecurity, Nixie is working harder than ever to grow open-source culture and opportunity with her work.</p></div><hr class=\"about-rule\"><div class=\"row justify-content-center g-4 text-light\"><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-purple h-100 p-4 text-center\"><div class=\"about-badge about-badge-purple mx-auto\"><i class=\"fas fa-video text-black\" aria-hidden=\"true\"></i></div><h3 class=\"text-blue text-center\">Show Host</h3><p>Show Host for Geekbuzz and OS.ALT on Rev3 (Discovery Channel) Prior G4TV and TechTV Affiliated</p><hr><h4 class=\"text-center\">Speaker / Panelist</h4><p>&bull; GDC (Game Developer Conference)</p><p>&bull; Zurich Game Festival</p><p>&bull; Penny Arcade Expo</p><p>&bull; GDC 10 Year Media</p><p>&bull; CES 10 Year Media</p><p>&bull; E3 8 Year Media</p></div></div><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-blue h-100 p-4 text-center\"><div class=\"about-badge about-badge-blue mx-auto\"><i class=\"fab fa-linux text-black\" aria-hidden=\"true\"></i></div><h3 class=\"text-blue text-center\">Content</h3><p>Demystifying coding, decoding gaming and gamifying tech with her unique brand of approachable expertise. Taking her knack for making the inscrutable into the logical, she has continued to grow her own path of bringing the often cryptic and complex world of coding to an audience of over 300,000 and growing.</p></div></div><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-green h-100 p-4 text-center\"><div class=\"about-badge about-badge-green mx-auto\"><i class=\"fas fa-handshake text-black\" aria-hidden=\"true\"></i></div><h3 class=\"text-blue text-center\">Sponsors</h3><p>Worked and collaborated with multiple high-end sponsors including:</p><ul class=\"about-tags\"><li>AT&amp;T</li><li>Dell</li><li>Ford</li><li>Kodak</li><li>Logitech</li></ul></div></div><div class=\"col-12 col-sm-6 col-lg-3\"><div class=\"about-card about-card-pink h-100 p-4 text-center\"><div class=\"about-badge about-badge-pink mx-auto\"><i class=\"fas fa-rocket text-black\" aria-hidden=\"true\"></i></div><h3 class=\"text-blue text-center\">Entrepreneur</h3><hr><p>&bull; Founded <a href=\"https://geekbeacon.org/\" target=\"_blank\" rel=\"noopener\">GeekBeacon</a>, a digital community resource and mental health awareness center.</p><p>&bull; Founded <a href=\"https://www.youtube.com/playlist?list=PLBe1BD1FneEaXI6qtXHS6cnZ33iQ_MhOE\" target=\"_blank\" rel=\"noopener\">GeeksAbroad</a>, a geeky travel show.</p><p>&bull; Founded <a href=\"https://gbfest.org/\" target=\"_blank\" rel=\"noopener\">GeekBeacon Festival</a>, an open-source conference.</p><p>&bull; Founded Equiti Games, an alternative distribution for games.</p></div></div></div></div></section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func WorkWithMe() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var9 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var9 == nil {
+			templ_7745c5c3_Var9 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<section id=\"work-with-me\" class=\"section work-band\"><div class=\"container\"><div class=\"work-band-grid\"><div><p class=\"eyebrow\">FOR BRANDS</p><h2 class=\"section-title\">Put your product in front of 410,000+ tech buyers.</h2><p class=\"section-lead\">Sponsored videos, integrations, reviews, livestreams and event hosting — for an audience that actually buys, builds and recommends the gear.</p><div class=\"hero-actions\"><a class=\"btn btn-cta\" href=\"/portfolio#trusted-by\">See the media kit</a> <a class=\"btn btn-ghost\" href=\"/contact\">Start a project</a></div></div><ul class=\"stat-grid\"><li><span class=\"stat-number\">410K+</span><span class=\"stat-label\">followers across platforms</span></li><li><span class=\"stat-number\">75%</span><span class=\"stat-label\">of the audience works in tech</span></li><li><span class=\"stat-number\">10%</span><span class=\"stat-label\">average sponsorship CTR</span></li><li><span class=\"stat-number\">10 yr</span><span class=\"stat-label\">CES &amp; GDC media credentials</span></li></ul></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

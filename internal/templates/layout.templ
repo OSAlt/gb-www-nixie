@@ -1,68 +1,160 @@
 package templates
 
-templ Layout(title string) {
+templ Layout(title string, description string, path string) {
 	<!DOCTYPE html>
-	<html lang="en">
+	<html lang="en" data-bs-theme="dark">
 		<head>
 			<meta charset="UTF-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
 			<title>{ title }</title>
-			<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-			<link rel="stylesheet" href="/static/css/style.css?v=10"/>
-			<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Comfortaa:400,700|Indie+Flower&display=swap"/>
+			<meta name="description" content={ description }/>
+			<link rel="canonical" href={ templ.URL(canonicalURL(path)) }/>
+			<meta name="theme-color" content="#0A0A0B"/>
+			<meta property="og:type" content="website"/>
+			<meta property="og:site_name" content="Nixie Pixel"/>
+			<meta property="og:locale" content="en_US"/>
+			<meta property="og:title" content={ title }/>
+			<meta property="og:description" content={ description }/>
+			<meta property="og:url" content={ canonicalURL(path) }/>
+			<meta property="og:image" content={ canonicalURL("/static/imgs/og-default.jpg") }/>
+			<meta property="og:image:width" content="1200"/>
+			<meta property="og:image:height" content="630"/>
+			<meta property="og:image:alt" content="Nixie Pixel — Linux, gaming and open source"/>
+			<meta name="twitter:card" content="summary_large_image"/>
+			<meta name="twitter:site" content="@NixiePixel"/>
+			<meta name="twitter:title" content={ title }/>
+			<meta name="twitter:description" content={ description }/>
+			<meta name="twitter:image" content={ canonicalURL("/static/imgs/og-default.jpg") }/>
 			<link rel="icon" type="image/x-icon" href="/static/favicon.ico"/>
-			<script src="https://unpkg.com/htmx.org@2.0.0"></script>
-			<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+			<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap"/>
+			<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+			<link rel="stylesheet" href="/static/css/style.css?v=13"/>
+			@JSONLD()
 		</head>
 		<body class="container-fluid p-0">
+			<a class="skip-link" href="#main">Skip to content</a>
 			@Header()
-			<main>
+			<main id="main">
 				{ children... }
 			</main>
+			@Footer()
 			<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 			<script src="https://kit.fontawesome.com/4d9859e450.js" crossorigin="anonymous"></script>
-			<!-- amCharts for Stats -->
-			<script src="/static/js/core.js"></script>
-			<script src="/static/js/charts.js"></script>
-			<script src="/static/js/animated.js"></script>
-			<script src="/static/js/stats.js?v=4"></script>
 		</body>
 	</html>
 }
 
+// JSONLD emits the Person structured data. templ treats the contents of a
+// script element as raw text, so the whole element is written through
+// templ.Raw rather than interpolated inside the tag.
+templ JSONLD() {
+	@templ.Raw(personJSONLDScript())
+}
+
 templ Header() {
-	<header class="sticky-top bg-dark px-2">
-		<nav class="navbar navbar-expand-md navbar-dark border-transparent">
-			@Social("socialWeb")
+	<header class="site-header sticky-top">
+		<nav class="navbar navbar-expand-lg navbar-dark site-nav container">
+			<a class="navbar-brand brand" href="/">
+				@LlamaMark("llama-mark-brand")
+				<span class="brand-word">NIXIE<span class="brand-word-accent">PIXEL</span></span>
+			</a>
 			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
 			</button>
-			<div class="collapse navbar-collapse justify-content-md-end" id="navbar">
-				<ul class="navbar-nav">
-					<hr class="d-block d-md-none border border-white"/>
-					<li class="nav-item"><a href="/" class="nav-link text-light">Home</a></li>
-					<li class="nav-item"><a href="/social" class="nav-link text-light">Social</a></li>
-					<li class="nav-item"><a href="/portfolio" class="nav-link text-light">Portfolio</a></li>
-					<li class="nav-item"><a href="/faq" class="nav-link text-light">FAQ</a></li>
-					<li class="nav-item"><a href="/blog" class="nav-link text-light">Blog</a></li>
-					<li class="nav-item"><a href="/contact" class="nav-link text-light">Contact</a></li>
+			<div class="collapse navbar-collapse justify-content-end" id="navbar">
+				<ul class="navbar-nav align-items-lg-center">
+					<li class="nav-item"><a href="https://www.youtube.com/user/nixiedoeslinux" target="_blank" rel="noopener" class="nav-link">Videos</a></li>
+					<li class="nav-item"><a href="/portfolio" class="nav-link">Work</a></li>
+					<li class="nav-item"><a href="/social" class="nav-link">Audience</a></li>
+					<li class="nav-item"><a href="/blog" class="nav-link">Blog</a></li>
+					<li class="nav-item"><a href="/faq" class="nav-link">FAQ</a></li>
+					<li class="nav-item"><a href="/contact" class="nav-link">Contact</a></li>
+					<li class="nav-item nav-cta">
+						<a href="/portfolio#trusted-by" class="btn btn-cta btn-sm">Work with me</a>
+					</li>
 				</ul>
 			</div>
 		</nav>
 	</header>
 }
 
+templ Footer() {
+	<footer id="site-footer" class="site-footer">
+		<div class="container">
+			<div class="footer-grid">
+				<div class="footer-brand">
+					<a class="brand" href="/">
+						@LlamaMark("llama-mark-brand")
+						<span class="brand-word">NIXIE<span class="brand-word-accent">PIXEL</span></span>
+					</a>
+					<p>Linux, gaming and open source — explained for people who build, break and ship things.</p>
+					@Social("socialWeb")
+				</div>
+				<div class="footer-col">
+					<h2 class="footer-heading">Sponsor &amp; press</h2>
+					<ul>
+						<li><a href="/portfolio#trusted-by">Work with me</a></li>
+						<li><a href="/contact">Start a project</a></li>
+						<li><a href="/social">Audience &amp; stats</a></li>
+					</ul>
+				</div>
+				<div class="footer-col">
+					<h2 class="footer-heading">Explore</h2>
+					<ul>
+						<li><a href="/blog">Blog</a></li>
+						<li><a href="/faq">FAQ</a></li>
+						<li><a href="/portfolio">Portfolio</a></li>
+						<li><a href="https://www.youtube.com/user/nixiedoeslinux" target="_blank" rel="noopener">YouTube</a></li>
+					</ul>
+				</div>
+				<div class="footer-col footer-newsletter">
+					<h2 class="footer-heading">Stay in the loop</h2>
+					<p>New videos, reviews and open-source projects. No spam.</p>
+					<a href="https://geekbeacon.org/#/portal" target="_blank" rel="noopener" class="btn btn-cta btn-sm">Join the newsletter</a>
+				</div>
+			</div>
+			<div class="footer-bottom">
+				<p class="mono">© 2026 Nixie Pixel</p>
+				<p class="footer-disclosure">
+					<a href="/faq">Sponsorship &amp; affiliate disclosure</a>
+					<span aria-hidden="true">·</span>
+					<a href="/contact">Business inquiries</a>
+				</p>
+			</div>
+		</div>
+	</footer>
+}
+
+// LlamaMark is the pixel-art llama used as the brand mark. It inherits
+// currentColor so it works on dark and purple backgrounds.
+templ LlamaMark(class string) {
+	<svg class={ "llama-mark", class } viewBox="0 0 16 16" role="img" aria-label="Nixie Pixel llama" shape-rendering="crispEdges" focusable="false">
+		<rect x="1" y="7" width="1" height="2" fill="currentColor"/>
+		<rect x="2" y="8" width="8" height="4" fill="currentColor"/>
+		<rect x="9" y="4" width="2" height="5" fill="currentColor"/>
+		<rect x="9" y="3" width="5" height="3" fill="currentColor"/>
+		<rect x="13" y="5" width="2" height="2" fill="currentColor"/>
+		<rect x="10" y="1" width="1" height="2" fill="currentColor"/>
+		<rect x="12" y="1" width="1" height="2" fill="currentColor"/>
+		<rect x="3" y="12" width="1" height="3" fill="currentColor"/>
+		<rect x="6" y="12" width="1" height="3" fill="currentColor"/>
+		<rect x="8" y="12" width="1" height="3" fill="currentColor"/>
+		<rect x="9" y="7" width="2" height="1" class="llama-mark-accent"/>
+		<rect x="12" y="4" width="1" height="1" class="llama-mark-eye"/>
+	</svg>
+}
+
 templ Social(id string) {
-	<ul id={ id } class="list-inline mr-auto my-auto social-icons">
-		<li class="list-inline-item"><a href="https://www.youtube.com/user/nixiedoeslinux" target="_blank" class="text-light"><i class="fab fa-youtube"></i></a></li>
-		<li class="list-inline-item"><a href="https://twitter.com/NixiePixel" target="_blank" class="text-light"><i class="fab fa-twitter"></i></a></li>
-		<li class="list-inline-item"><a href="https://www.facebook.com/nixiepixel" target="_blank" class="text-light"><i class="fab fa-facebook-f"></i></a></li>
-		<li class="list-inline-item"><a href="https://www.instagram.com/nixie.pixel" target="_blank" class="text-light"><i class="fab fa-instagram"></i></a></li>
-		<li class="list-inline-item"><a href="https://www.twitch.tv/nixiepixel" target="_blank" class="text-light"><i class="fab fa-twitch"></i></a></li>
-		<li class="list-inline-item"><a href="https://www.tiktok.com/@nixiepixel" target="_blank" class="text-light"><i class="fab fa-tiktok"></i></a></li>
-		<li class="list-inline-item"><a href="https://www.patreon.com/nixiepixel" target="_blank" class="text-light"><i class="fab fa-patreon"></i></a></li>
-		<li class="list-inline-item"><a href="https://github.com/nixiepixel" target="_blank" class="text-light"><i class="fab fa-github"></i></a></li>
-		<li class="list-inline-item"><a href="https://keybase.io/nixiepixel" target="_blank" class="text-light"><i class="fab fa-keybase"></i></a></li>
+	<ul id={ id } class="list-inline social-icons">
+		for _, link := range socialLinks {
+			<li class="list-inline-item">
+				<a href={ templ.URL(link.URL) } target="_blank" rel="noopener" aria-label={ link.Name } title={ link.Name }>
+					<i class={ link.Icon } aria-hidden="true"></i>
+				</a>
+			</li>
+		}
 	</ul>
 }

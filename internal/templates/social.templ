@@ -1,7 +1,11 @@
 package templates
 
 templ SocialPage() {
-	@Layout("NixiePixel - Social") {
+	@Layout(
+		"Audience & Socials — Nixie Pixel",
+		"Where to find Nixie Pixel online, plus live follower counts across YouTube, Twitch, TikTok, Discord and more.",
+		"/social",
+	) {
 		<nav class="navbar navbar-expand navbar-dark bg-secondary sticky-top sub-nav">
 			<div class="container justify-content-center">
 				<ul class="navbar-nav">
@@ -116,6 +120,11 @@ templ SocialPage() {
 			<div id="curator-feed-default-feed-layout"><a href="https://curator.io" target="_blank" class="crt-logo crt-tag">Powered by Curator.io</a></div>
 			<script type="text/javascript" src="https://cdn.curator.io/published/665652c2-9507-4961-9372-637c95380d14.js" async charset="UTF-8"></script>
 		</section>
+		<!-- amCharts and the stats widget are only needed on this page. -->
+		<script src="/static/js/core.js"></script>
+		<script src="/static/js/charts.js"></script>
+		<script src="/static/js/animated.js"></script>
+		<script src="/static/js/stats.js?v=5"></script>
 		<script src="/static/js/llama-fx.js?v=12" defer></script>
 	}
 }
