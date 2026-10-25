@@ -11,6 +11,8 @@ import (
 
 	"github.com/OSAlt/gb-www-nixie/internal/config"
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
+	"github.com/OSAlt/gb-www-nixie/internal/mocks"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestSocial_RendersAllPlatforms(t *testing.T) {
@@ -52,31 +54,6 @@ func TestSocial_RendersAllPlatforms(t *testing.T) {
 	}
 }
 
-// stubSocialDB implements ports.DBService with just enough behaviour for the
-// social health endpoint tests.
-type stubSocialDB struct {
-	states []domain.SocialMetricState
-	err    error
-}
-
-func (s stubSocialDB) ListContacts(context.Context, string) ([]domain.ContactMessage, error) {
-	return nil, nil
-}
-
-func (s stubSocialDB) GetSocialCounts(context.Context) (map[string]int, error) {
-	return nil, nil
-}
-
-func (s stubSocialDB) GetSocialMetricStates(context.Context) ([]domain.SocialMetricState, error) {
-	return s.states, s.err
-}
-
-func (s stubSocialDB) UpsertSocialCount(context.Context, string, int) error { return nil }
-
-func (s stubSocialDB) LastSocialRefresh(context.Context) (time.Time, error) {
-	return time.Time{}, nil
-}
-
 type socialHealthBody struct {
 	Status         string   `json:"status"`
 	StalePlatforms []string `json:"stale_platforms"`
@@ -98,10 +75,11 @@ func decodeSocialHealth(t *testing.T, rec *httptest.ResponseRecorder) socialHeal
 
 func TestAPISocialHealth_OK(t *testing.T) {
 	now := time.Now()
-	db := stubSocialDB{states: []domain.SocialMetricState{
+	db := mocks.NewMockDBService(t)
+	db.EXPECT().GetSocialMetricStates(mock.Anything).Return([]domain.SocialMetricState{
 		{Platform: "youtube", Followers: 304000, RefreshedAt: now.Add(-time.Hour)},
 		{Platform: "discord", Followers: 5425, RefreshedAt: now},
-	}}
+	}, nil)
 	h := NewHandler(nil, nil, db, nil, &config.Config{SocialRefreshSeconds: 86400})
 
 	rec := httptest.NewRecorder()
@@ -124,10 +102,11 @@ func TestAPISocialHealth_OK(t *testing.T) {
 
 func TestAPISocialHealth_DegradedWhenStale(t *testing.T) {
 	now := time.Now()
-	db := stubSocialDB{states: []domain.SocialMetricState{
+	db := mocks.NewMockDBService(t)
+	db.EXPECT().GetSocialMetricStates(mock.Anything).Return([]domain.SocialMetricState{
 		{Platform: "facebook", Followers: 41655, RefreshedAt: now.Add(-72 * time.Hour)},
 		{Platform: "tiktok", Followers: 3616, RefreshedAt: now},
-	}}
+	}, nil)
 	h := NewHandler(nil, nil, db, nil, &config.Config{SocialRefreshSeconds: 86400})
 
 	rec := httptest.NewRecorder()
@@ -166,7 +145,8 @@ func TestAPISocialHealth_NoDatabase(t *testing.T) {
 }
 
 func TestAPISocialHealth_DatabaseError(t *testing.T) {
-	db := stubSocialDB{err: context.DeadlineExceeded}
+	db := mocks.NewMockDBService(t)
+	db.EXPECT().GetSocialMetricStates(mock.Anything).Return(nil, context.DeadlineExceeded)
 	h := NewHandler(nil, nil, db, nil, &config.Config{SocialRefreshSeconds: 86400})
 
 	rec := httptest.NewRecorder()
@@ -174,5 +154,21 @@ func TestAPISocialHealth_DatabaseError(t *testing.T) {
 
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("got status %d, want 503", rec.Code)
+	}
+}
+
+func TestAPISocialHealth_EmptyTableIsDegraded(t *testing.T) {
+	db := mocks.NewMockDBService(t)
+	db.EXPECT().GetSocialMetricStates(mock.Anything).Return(nil, nil)
+	h := NewHandler(nil, nil, db, nil, &config.Config{SocialRefreshSeconds: 86400})
+
+	rec := httptest.NewRecorder()
+	h.APISocialHealth(rec, httptest.NewRequest(http.MethodGet, "/api/v1/social/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rec.Code)
+	}
+	if body := decodeSocialHealth(t, rec); body.Status != "degraded" {
+		t.Errorf("got status %q, want degraded for an empty table", body.Status)
 	}
 }
