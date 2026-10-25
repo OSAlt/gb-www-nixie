@@ -49,3 +49,9 @@ type NixieGooseDbVersion struct {
 	IsApplied bool
 	Tstamp    pgtype.Timestamp
 }
+
+type NixieSocialMetric struct {
+	Platform    string
+	Followers   int64
+	RefreshedAt pgtype.Timestamptz
+}

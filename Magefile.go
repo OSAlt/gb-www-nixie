@@ -108,7 +108,7 @@ func Goose(arg string) error {
 		return fmt.Errorf("DATABASE_URL environment variable is not set")
 	}
 
-	args := []string{"run", "-modfile", "tools/go.mod", "github.com/pressly/goose/v3/cmd/goose", "-dir", "db/migrations", "postgres", dsn}
+	args := []string{"run", "-modfile", "tools/go.mod", "github.com/pressly/goose/v3/cmd/goose", "-dir", "db/migrations", "-table", "nixie.goose_db_version", "postgres", dsn}
 	// Split by space to support multiple arguments in one string
 	args = append(args, strings.Fields(arg)...)
 

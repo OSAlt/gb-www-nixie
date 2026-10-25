@@ -1,15 +1,29 @@
 
 /* Define variables to hold social following counts */
 let data;
-let fallbackData = {'facebook' : 50466, 'twitch' : 2500, 'twitter' : 31102, 'instagram' : 7498, 'youtube' : 330000, 'discord' : 6336};
+let fallbackData = {'facebook' : 41655, 'twitch' : 2500, 'twitter' : 31102, 'instagram' : 7498, 'youtube' : 202000, 'discord' : 6336, 'tiktok' : 3615};
 
-// Fetch the data
-fetch(`https://social.geekbeacon.org/api/v1.0/social/count/all`)
-.then((response) => response.json())
+function fetchCounts(url) {
+    return fetch(url).then(function (response) {
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+        return response.json();
+    });
+}
+
+/* Fetch the data: same-origin API first, legacy GeekBeacon service second,
+   then the hardcoded fallbackData */
+fetchCounts(`/api/v1/social/count/all`)
+.catch(function () {
+    return fetchCounts(`https://social.geekbeacon.org/api/v1.0/social/count/all`);
+})
 .then(function (response) {
     //check if response is valid, if not use fallback data
     if(response && response.youtube) {
-        data = response;
+        // Merge over fallbackData so any key a source omits (e.g. tiktok)
+        // still charts.
+        data = Object.assign({}, fallbackData, response);
     } else {
         data = fallbackData;
     }
@@ -65,6 +79,9 @@ function makeChart() {
     }, {
         "name": "Twitch",
         "value": data.twitch
+    }, {
+        "name": "TikTok",
+        "value": data.tiktok
     }];
 
     let llamaChart = chart.series.push(new am4charts.PictorialStackedSeries()); //create pictorial chart
@@ -90,6 +107,7 @@ function makeChart() {
         am4core.color("rgba(124,205,202, 0.7)"), //IG
         am4core.color("rgba(230,57,70, 0.7)"), //DC
         am4core.color("rgba(79,79,79, 0.7)"), //TW
+        am4core.color("rgba(254,44,85, 0.7)"), //TokTok
     ];
     llamaChart.legendSettings.labelText = "[bold #fff]{name}: {value}[/]"; //create new label text layout
     chart.legend = new am4charts.Legend(); //create new legend
