@@ -80,16 +80,18 @@ func main() {
 			uow = adapter
 		}
 	}
-	contactSvc := contact.NewService(cfg, dbSvc)
-	blogSvc := blog.NewService(cfg)
-
-	// When a database is available, the media service reads the shared cache
-	// written by the refresh job and never calls YouTube from a request.
-	if store, ok := dbSvc.(ports.MediaCacheStore); ok {
+	// When a database is available, the feed services read the shared cache
+	// written by the refresh jobs and never call upstream from a request.
+	var contentStore ports.ContentCacheStore
+	if store, ok := dbSvc.(ports.ContentCacheStore); ok {
+		contentStore = store
 		mediaSvc.WithStore(store)
 	}
 
-	// Social follower-count refresh (see doc/social_migration.md). The
+	contactSvc := contact.NewService(cfg).WithStore(contentStore)
+	blogSvc := blog.NewService(cfg).WithStore(contentStore)
+
+	// Social follower-count refresh (see docs/social_migration.md). The
 	// aggregator is built here and handed to the River worker.
 	var socialFetcher *social.Aggregator
 	if dbSvc != nil {
@@ -101,12 +103,22 @@ func main() {
 	}
 
 	// Background jobs. River needs its own schema and at least one worker; the
-	// media refresh worker is always registered, so a database is enough.
+	// media/blog/contact refresh workers are always registered, so a database is
+	// enough.
 	var riverClient *river.Client[pgx.Tx]
 	if pool != nil {
+		deps := jobs.Deps{
+			Config:           cfg,
+			DB:               dbSvc,
+			UnitOfWork:       uow,
+			SocialFetcher:    socialFetcher,
+			MediaRefresher:   mediaSvc,
+			BlogRefresher:    blogSvc,
+			ContactRefresher: contactSvc,
+		}
 		if err := db_adapter.MigrateRiver(ctx, pool); err != nil {
 			slog.Error("river migrations failed; background jobs disabled", "error", err)
-		} else if riverClient, err = startRiver(ctx, pool, cfg, dbSvc, uow, socialFetcher, mediaSvc); err != nil {
+		} else if riverClient, err = startRiver(ctx, pool, deps); err != nil {
 			slog.Error("river client failed to start; background jobs disabled", "error", err)
 			riverClient = nil
 		}
@@ -132,6 +144,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/contact/list", h.APIListContacts)
 	mux.HandleFunc("GET /api/v1/social/count/all", h.APISocialCountAll)
 	mux.HandleFunc("GET /api/v1/social/health", h.APISocialHealth)
+	mux.HandleFunc("GET /api/v1/content/health", h.APIContentHealth)
 
 	// Catch-all for other routes
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -195,15 +208,7 @@ func withCacheHeaders(next http.Handler) http.Handler {
 // startRiver builds and starts the River client. Start is given a context that
 // does not cancel on SIGTERM: the client is stopped explicitly in main so
 // running jobs can finish (River's Stop waits for them).
-func startRiver(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config, dbSvc ports.DBService, uow ports.UnitOfWork, fetcher *social.Aggregator, mediaRefresher ports.MediaRefresher) (*river.Client[pgx.Tx], error) {
-	deps := jobs.Deps{
-		Config:         cfg,
-		DB:             dbSvc,
-		UnitOfWork:     uow,
-		SocialFetcher:  fetcher,
-		MediaRefresher: mediaRefresher,
-	}
-
+func startRiver(ctx context.Context, pool *pgxpool.Pool, deps jobs.Deps) (*river.Client[pgx.Tx], error) {
 	workers, err := jobs.NewWorkers(deps)
 	if err != nil {
 		return nil, err

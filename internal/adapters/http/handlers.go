@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"maps"
 	"net/http"
@@ -231,5 +232,76 @@ func (h *Handler) APISocialHealth(w http.ResponseWriter, r *http.Request) {
 		"stale_after_seconds": int(staleAfter.Seconds()),
 		"stale_platforms":     stale,
 		"platforms":           platforms,
+	})
+}
+
+// APIContentHealth reports how fresh the shared feed caches are. Each refresh
+// job rewrites expires_at after a successful fetch, so a stale or missing feed
+// means that job stopped working even though the site stays up.
+//
+// Monitoring should treat status "degraded" as the alert condition; the HTTP
+// status stays 200 so a health check can never be mistaken for a dead server.
+func (h *Handler) APIContentHealth(w http.ResponseWriter, r *http.Request) {
+	respond := func(code int, payload any) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(code)
+		json.NewEncoder(w).Encode(payload)
+	}
+
+	type cacheReporter interface {
+		CacheState(ctx context.Context) (ports.CacheState, error)
+	}
+
+	now := time.Now()
+	feeds := make(map[string]any)
+	stale := make([]string, 0, 3)
+
+	collect := func(name string, reporter cacheReporter) {
+		if reporter == nil {
+			return
+		}
+		state, err := reporter.CacheState(r.Context())
+		if err != nil {
+			feeds[name] = map[string]any{
+				"error":   err.Error(),
+				"stale":   true,
+				"missing": true,
+			}
+			stale = append(stale, name)
+			return
+		}
+
+		feed := map[string]any{
+			"items":   state.Items,
+			"stale":   state.Stale,
+			"missing": state.Missing,
+		}
+		if !state.FetchedAt.IsZero() {
+			feed["fetched_at"] = state.FetchedAt.UTC().Format(time.RFC3339)
+		}
+		if !state.ExpiresAt.IsZero() {
+			feed["expires_at"] = state.ExpiresAt.UTC().Format(time.RFC3339)
+		}
+		if state.Stale || state.Missing {
+			stale = append(stale, name)
+		}
+		feeds[name] = feed
+	}
+
+	collect("media", h.mediaService)
+	collect("blog", h.blogService)
+	collect("contact", h.contactService)
+	sort.Strings(stale)
+
+	status := "ok"
+	if len(stale) > 0 {
+		status = "degraded"
+	}
+
+	respond(http.StatusOK, map[string]any{
+		"status":      status,
+		"checked_at":  now.UTC().Format(time.RFC3339),
+		"stale_feeds": stale,
+		"feeds":       feeds,
 	})
 }

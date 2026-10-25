@@ -34,8 +34,8 @@ func mediaConfig(feedURL string) *config.Config {
 }
 
 func TestService_GetRecentPosts_UsesStore(t *testing.T) {
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{
 		Payload:   cachedPayload(t, domain.MediaPost{ID: "cached", Caption: "Cached"}),
 		FetchedAt: time.Now(),
 		ExpiresAt: time.Now().Add(time.Hour),
@@ -54,8 +54,8 @@ func TestService_GetRecentPosts_UsesStore(t *testing.T) {
 }
 
 func TestService_GetRecentPosts_ServesStaleFromStore(t *testing.T) {
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{
 		Payload:   cachedPayload(t, domain.MediaPost{ID: "stale"}),
 		FetchedAt: time.Now().Add(-2 * time.Hour),
 		ExpiresAt: time.Now().Add(-time.Hour),
@@ -76,9 +76,9 @@ func TestService_GetRecentPosts_StoreMissFetchesAndSaves(t *testing.T) {
 	var hits atomic.Int32
 	srv := feedServer(t, &hits)
 
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{}, ports.ErrMediaCacheMiss)
-	store.EXPECT().SaveMediaCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(nil)
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{}, ports.ErrContentCacheMiss)
+	store.EXPECT().SaveContentCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(nil)
 
 	svc := NewService(mediaConfig(srv.URL + "/channel-a.xml")).WithStore(store)
 
@@ -98,9 +98,9 @@ func TestService_GetRecentPosts_StoreReadErrorFallsBack(t *testing.T) {
 	var hits atomic.Int32
 	srv := feedServer(t, &hits)
 
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{}, errors.New("db down"))
-	store.EXPECT().SaveMediaCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(nil)
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{}, errors.New("db down"))
+	store.EXPECT().SaveContentCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(nil)
 
 	svc := NewService(mediaConfig(srv.URL + "/channel-a.xml")).WithStore(store)
 
@@ -119,9 +119,9 @@ func TestService_GetRecentPosts_StoreReadErrorFallsBack(t *testing.T) {
 func TestService_Refresh_SavesToStore(t *testing.T) {
 	srv := feedServer(t, nil)
 
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{}, ports.ErrMediaCacheMiss)
-	store.EXPECT().SaveMediaCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(nil)
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{}, ports.ErrContentCacheMiss)
+	store.EXPECT().SaveContentCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(nil)
 
 	svc := NewService(mediaConfig(srv.URL + "/channel-b.xml")).WithStore(store)
 
@@ -135,8 +135,8 @@ func TestService_Refresh_SavesToStore(t *testing.T) {
 }
 
 func TestService_Refresh_SkipsFreshCache(t *testing.T) {
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{
 		ExpiresAt: time.Now().Add(time.Hour),
 	}, nil)
 
@@ -163,9 +163,9 @@ func TestService_Refresh_NoPostsIsAnError(t *testing.T) {
 func TestService_Refresh_SaveErrorIsReturned(t *testing.T) {
 	srv := feedServer(t, nil)
 
-	store := mocks.NewMockMediaCacheStore(t)
-	store.EXPECT().LoadMediaCache(mock.Anything, MediaCacheKey).Return(ports.MediaCacheEntry{}, ports.ErrMediaCacheMiss)
-	store.EXPECT().SaveMediaCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(errors.New("db down"))
+	store := mocks.NewMockContentCacheStore(t)
+	store.EXPECT().LoadContentCache(mock.Anything, MediaCacheKey).Return(ports.ContentCacheEntry{}, ports.ErrContentCacheMiss)
+	store.EXPECT().SaveContentCache(mock.Anything, MediaCacheKey, mock.Anything, mock.Anything).Return(errors.New("db down"))
 
 	svc := NewService(mediaConfig(srv.URL + "/channel-a.xml")).WithStore(store)
 

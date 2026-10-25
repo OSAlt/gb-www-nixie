@@ -141,7 +141,7 @@ func openSQL(t *testing.T, dsn string) *sql.DB {
 func resetData(t *testing.T) {
 	t.Helper()
 	db := openSQL(t, requireDB(t))
-	_, err := db.Exec(`TRUNCATE nixie.contact_form, nixie.social_metrics, nixie.media_cache, config.user_social, config.social_app RESTART IDENTITY CASCADE`)
+	_, err := db.Exec(`TRUNCATE nixie.contact_form, nixie.social_metrics, nixie.content_cache, config.user_social, config.social_app RESTART IDENTITY CASCADE`)
 	if err != nil {
 		t.Fatalf("truncate: %v", err)
 	}

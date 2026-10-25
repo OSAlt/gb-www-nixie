@@ -12,8 +12,10 @@ packages:
   github.com/OSAlt/gb-www-nixie/internal/ports:
     interfaces:
       MediaService:
-      MediaCacheStore:
+      ContentCacheStore:
       MediaRefresher:
+      BlogRefresher:
+      ContactRefresher:
       ContactService:
       DBService:
       BlogService:

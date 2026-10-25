@@ -5,6 +5,7 @@ package mocks
 import (
 	context "context"
 
+	ports "github.com/OSAlt/gb-www-nixie/internal/ports"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -19,6 +20,62 @@ type MockContactService_Expecter struct {
 
 func (_m *MockContactService) EXPECT() *MockContactService_Expecter {
 	return &MockContactService_Expecter{mock: &_m.Mock}
+}
+
+// CacheState provides a mock function with given fields: ctx
+func (_m *MockContactService) CacheState(ctx context.Context) (ports.CacheState, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CacheState")
+	}
+
+	var r0 ports.CacheState
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (ports.CacheState, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) ports.CacheState); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Get(0).(ports.CacheState)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockContactService_CacheState_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CacheState'
+type MockContactService_CacheState_Call struct {
+	*mock.Call
+}
+
+// CacheState is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockContactService_Expecter) CacheState(ctx interface{}) *MockContactService_CacheState_Call {
+	return &MockContactService_CacheState_Call{Call: _e.mock.On("CacheState", ctx)}
+}
+
+func (_c *MockContactService_CacheState_Call) Run(run func(ctx context.Context)) *MockContactService_CacheState_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockContactService_CacheState_Call) Return(_a0 ports.CacheState, _a1 error) *MockContactService_CacheState_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockContactService_CacheState_Call) RunAndReturn(run func(context.Context) (ports.CacheState, error)) *MockContactService_CacheState_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetSubjects provides a mock function with given fields: ctx

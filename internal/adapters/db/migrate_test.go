@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	latestMigration    = int64(3)
+	latestMigration    = int64(4)
 	seededPlatformRows = 7
 )
 
@@ -57,7 +57,7 @@ func TestRunMigrations_AppliesAllMigrations(t *testing.T) {
 	for _, table := range []string{
 		"nixie.contact_form",
 		"nixie.social_metrics",
-		"nixie.media_cache",
+		"nixie.content_cache",
 		"config.social_app",
 		"config.social_app_type",
 		"config.user_social",
@@ -201,27 +201,27 @@ func TestRunMigrations_RollbackLatestMigration(t *testing.T) {
 		t.Errorf("rolled back migration %d, want %d", result.Source.Version, latestMigration)
 	}
 
-	// 003 owns media_cache, so it must be gone.
-	if tableExists(t, db, "nixie.media_cache") {
-		t.Error("nixie.media_cache still exists after rolling back 003")
+	// 004 owns content_cache, so it must be gone.
+	if tableExists(t, db, "nixie.content_cache") {
+		t.Error("nixie.content_cache still exists after rolling back 004")
 	}
-	// 002 still owns social_metrics; 001 owns contact_form and the config schema.
+	// Earlier migrations still own their objects.
 	if !tableExists(t, db, "nixie.social_metrics") {
-		t.Error("nixie.social_metrics should survive rolling back 003")
+		t.Error("nixie.social_metrics should survive rolling back 004")
 	}
 	if !tableExists(t, db, "nixie.contact_form") {
-		t.Error("nixie.contact_form should survive rolling back 003")
+		t.Error("nixie.contact_form should survive rolling back 004")
 	}
 	if !tableExists(t, db, "config.social_app") {
-		t.Error("config.social_app should survive rolling back 003")
+		t.Error("config.social_app should survive rolling back 004")
 	}
 
 	version, err := provider.GetDBVersion(ctx)
 	if err != nil {
 		t.Fatalf("GetDBVersion: %v", err)
 	}
-	if version != 2 {
-		t.Errorf("goose version after rollback = %d, want 2", version)
+	if version != 3 {
+		t.Errorf("goose version after rollback = %d, want 3", version)
 	}
 
 	// Re-applying restores the cache table.
@@ -232,8 +232,8 @@ func TestRunMigrations_RollbackLatestMigration(t *testing.T) {
 	if len(results) != 1 || results[0].Source.Version != latestMigration {
 		t.Fatalf("got %d re-applied migrations, want just %d", len(results), latestMigration)
 	}
-	if !tableExists(t, db, "nixie.media_cache") {
-		t.Fatal("nixie.media_cache was not recreated")
+	if !tableExists(t, db, "nixie.content_cache") {
+		t.Fatal("nixie.content_cache was not recreated")
 	}
 	var platforms int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM nixie.social_metrics`).Scan(&platforms); err != nil {

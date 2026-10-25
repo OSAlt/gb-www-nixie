@@ -12,6 +12,7 @@ import (
 	"github.com/OSAlt/gb-www-nixie/internal/config"
 	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/OSAlt/gb-www-nixie/internal/mocks"
+	"github.com/OSAlt/gb-www-nixie/internal/ports"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -170,5 +171,113 @@ func TestAPISocialHealth_EmptyTableIsDegraded(t *testing.T) {
 	}
 	if body := decodeSocialHealth(t, rec); body.Status != "degraded" {
 		t.Errorf("got status %q, want degraded for an empty table", body.Status)
+	}
+}
+
+type contentHealthBody struct {
+	Status     string   `json:"status"`
+	StaleFeeds []string `json:"stale_feeds"`
+	Feeds      map[string]struct {
+		Items   int  `json:"items"`
+		Stale   bool `json:"stale"`
+		Missing bool `json:"missing"`
+	} `json:"feeds"`
+}
+
+func decodeContentHealth(t *testing.T, rec *httptest.ResponseRecorder) contentHealthBody {
+	t.Helper()
+	var body contentHealthBody
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON: %v (body: %s)", err, rec.Body.String())
+	}
+	return body
+}
+
+func TestAPIContentHealth_OK(t *testing.T) {
+	now := time.Now()
+	media := mocks.NewMockMediaService(t)
+	media.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{
+		Items: 20, FetchedAt: now, ExpiresAt: now.Add(time.Hour),
+	}, nil)
+	blog := mocks.NewMockBlogService(t)
+	blog.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{
+		Items: 12, FetchedAt: now, ExpiresAt: now.Add(time.Hour),
+	}, nil)
+	contact := mocks.NewMockContactService(t)
+	contact.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{
+		Items: 4, FetchedAt: now, ExpiresAt: now.Add(time.Hour),
+	}, nil)
+
+	h := NewHandler(media, contact, nil, blog, nil)
+
+	rec := httptest.NewRecorder()
+	h.APIContentHealth(rec, httptest.NewRequest(http.MethodGet, "/api/v1/content/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rec.Code)
+	}
+	body := decodeContentHealth(t, rec)
+	if body.Status != "ok" {
+		t.Errorf("got status %q, want ok", body.Status)
+	}
+	if len(body.StaleFeeds) != 0 {
+		t.Errorf("expected no stale feeds, got %v", body.StaleFeeds)
+	}
+	if body.Feeds["media"].Items != 20 || body.Feeds["blog"].Items != 12 {
+		t.Errorf("got feeds %+v", body.Feeds)
+	}
+}
+
+func TestAPIContentHealth_DegradedWhenStaleOrMissing(t *testing.T) {
+	now := time.Now()
+	media := mocks.NewMockMediaService(t)
+	media.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{
+		Items: 20, FetchedAt: now.Add(-2 * time.Hour), ExpiresAt: now.Add(-time.Hour), Stale: true,
+	}, nil)
+	blog := mocks.NewMockBlogService(t)
+	blog.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{Missing: true, Stale: true}, nil)
+	contact := mocks.NewMockContactService(t)
+	contact.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{
+		Items: 4, FetchedAt: now, ExpiresAt: now.Add(time.Hour),
+	}, nil)
+
+	h := NewHandler(media, contact, nil, blog, nil)
+
+	rec := httptest.NewRecorder()
+	h.APIContentHealth(rec, httptest.NewRequest(http.MethodGet, "/api/v1/content/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200 even when degraded", rec.Code)
+	}
+	body := decodeContentHealth(t, rec)
+	if body.Status != "degraded" {
+		t.Errorf("got status %q, want degraded", body.Status)
+	}
+	if len(body.StaleFeeds) != 2 || body.StaleFeeds[0] != "blog" || body.StaleFeeds[1] != "media" {
+		t.Errorf("got stale feeds %v, want [blog media]", body.StaleFeeds)
+	}
+	if !body.Feeds["blog"].Missing {
+		t.Error("blog should be marked missing")
+	}
+}
+
+func TestAPIContentHealth_ReporterError(t *testing.T) {
+	media := mocks.NewMockMediaService(t)
+	media.EXPECT().CacheState(mock.Anything).Return(ports.CacheState{}, context.DeadlineExceeded)
+
+	h := NewHandler(media, nil, nil, nil, nil)
+
+	rec := httptest.NewRecorder()
+	h.APIContentHealth(rec, httptest.NewRequest(http.MethodGet, "/api/v1/content/health", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got status %d, want 200", rec.Code)
+	}
+	body := decodeContentHealth(t, rec)
+	if body.Status != "degraded" {
+		t.Errorf("got status %q, want degraded", body.Status)
+	}
+	if len(body.StaleFeeds) != 1 || body.StaleFeeds[0] != "media" {
+		t.Errorf("got stale feeds %v, want [media]", body.StaleFeeds)
 	}
 }

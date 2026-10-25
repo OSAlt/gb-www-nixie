@@ -3,3 +3,5 @@ bin
 .env
 .DS_Store
 coverage.out
+config/config.yml
+config/config.yaml

@@ -1,7 +1,7 @@
 // Package social fetches follower/member counts for the platforms shown on
 // the site's social llama chart. Each platform has its own Fetcher; some use
 // official free APIs (YouTube, Twitch, Discord) and some use a free public
-// scraping aggregator. See doc/social_migration.md for credential setup.
+// scraping aggregator. See docs/social_migration.md for credential setup.
 package social
 
 import (

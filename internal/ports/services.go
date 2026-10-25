@@ -9,10 +9,17 @@ import (
 
 type MediaService interface {
 	GetRecentPosts(ctx context.Context, count int) ([]domain.MediaPost, error)
+	CacheState(ctx context.Context) (CacheState, error)
 }
 
 type ContactService interface {
 	GetSubjects(ctx context.Context) ([]string, error)
+	CacheState(ctx context.Context) (CacheState, error)
+}
+
+// ContactRefresher fetches the subject list and stores it.
+type ContactRefresher interface {
+	Refresh(ctx context.Context) (int, error)
 }
 
 type DBService interface {
@@ -29,4 +36,10 @@ type DBService interface {
 
 type BlogService interface {
 	GetRecentPosts(ctx context.Context) ([]domain.BlogPost, error)
+	CacheState(ctx context.Context) (CacheState, error)
+}
+
+// BlogRefresher fetches the blog feeds and stores them.
+type BlogRefresher interface {
+	Refresh(ctx context.Context) (int, error)
 }

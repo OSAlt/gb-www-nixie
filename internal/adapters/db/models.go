@@ -36,18 +36,18 @@ type NixieContactForm struct {
 	Domain        string
 }
 
+type NixieContentCache struct {
+	Key       string
+	Payload   []byte
+	FetchedAt pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
+}
+
 type NixieGooseDbVersion struct {
 	ID        int32
 	VersionID int64
 	IsApplied bool
 	Tstamp    pgtype.Timestamp
-}
-
-type NixieMediaCache struct {
-	Key       string
-	Payload   []byte
-	FetchedAt pgtype.Timestamptz
-	ExpiresAt pgtype.Timestamptz
 }
 
 type NixieSocialMetric struct {
