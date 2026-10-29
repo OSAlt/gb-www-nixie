@@ -7,7 +7,7 @@ require (
 	github.com/magefile/mage v1.17.2
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/sqlc-dev/sqlc v1.31.1
-	github.com/vektra/mockery/v3 v3.8.1
+	github.com/vektra/mockery/v3 v3.9.0
 )
 
 require (
