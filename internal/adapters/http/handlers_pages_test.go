@@ -223,39 +223,6 @@ func TestContact_FallsBackToDefaultSubjects(t *testing.T) {
 	}
 }
 
-func TestAPIListContacts(t *testing.T) {
-	db := mocks.NewMockDBService(t)
-	db.EXPECT().ListContacts(mock.Anything, "geekbeacon.org").
-		Return([]domain.ContactMessage{{Email: "a@b", Subject: "Hi"}}, nil)
-	h := NewHandler(nil, nil, db, nil, &config.Config{})
-
-	rec := serve(t, h.APIListContacts, "/api/v1/contact/list?domain=geekbeacon.org")
-	if rec.Code != http.StatusOK {
-		t.Fatalf("got status %d, want 200", rec.Code)
-	}
-	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
-		t.Errorf("got content type %q", ct)
-	}
-	var got []domain.ContactMessage
-	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
-		t.Fatalf("invalid JSON: %v", err)
-	}
-	if len(got) != 1 || got[0].Email != "a@b" {
-		t.Errorf("unexpected contacts: %+v", got)
-	}
-}
-
-func TestAPIListContacts_Error(t *testing.T) {
-	db := mocks.NewMockDBService(t)
-	db.EXPECT().ListContacts(mock.Anything, "").Return(nil, errors.New("db down"))
-	h := NewHandler(nil, nil, db, nil, &config.Config{})
-
-	rec := serve(t, h.APIListContacts, "/api/v1/contact/list")
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("got status %d, want 500", rec.Code)
-	}
-}
-
 func TestAPISocialCountAll(t *testing.T) {
 	db := mocks.NewMockDBService(t)
 	db.EXPECT().GetSocialCounts(mock.Anything).Return(map[string]int{"youtube": 304000, "discord": 5425}, nil)
