@@ -30,6 +30,12 @@ const (
 
 	// MediaCacheKey is the row the home page reads and the refresh job writes.
 	MediaCacheKey = "youtube:recent"
+
+	// mediaRefreshSlack keeps a periodic job that fires slightly before the
+	// cache expires (because the interval and TTL share one value and the
+	// fetch itself takes time) from skipping the refresh, which would
+	// otherwise leave the cache stale for a whole cycle.
+	mediaRefreshSlack = 5 * time.Minute
 )
 
 type cacheEntry struct {
@@ -119,7 +125,7 @@ func (s *Service) Refresh(ctx context.Context, count int) (int, error) {
 	if s.store != nil {
 		entry, err := s.store.LoadContentCache(ctx, MediaCacheKey)
 		switch {
-		case err == nil && time.Now().Before(entry.ExpiresAt):
+		case err == nil && time.Now().Add(mediaRefreshSlack).Before(entry.ExpiresAt):
 			slog.Info("media cache is fresh; skipping refresh", "expires_at", entry.ExpiresAt)
 			return 0, nil
 		case err != nil && !errors.Is(err, ports.ErrContentCacheMiss):

@@ -88,7 +88,7 @@ func main() {
 		mediaSvc.WithStore(store)
 	}
 
-	contactSvc := contact.NewService(cfg).WithStore(contentStore)
+	contactSvc := contact.NewService(cfg).WithStore(contentStore).WithLister(dbSvc)
 	blogSvc := blog.NewService(cfg).WithStore(contentStore)
 
 	// Social follower-count refresh (see docs/social_migration.md). The

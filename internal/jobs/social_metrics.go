@@ -14,8 +14,12 @@ import (
 	"github.com/riverqueue/river"
 )
 
-// SocialMetricsArgs takes no arguments: the job refreshes every configured
-// source at once.
+// socialRefreshSlack keeps a periodic job that fires slightly before the
+// configured interval boundary from skipping the refresh, which would
+// otherwise leave the stored metrics stale for a whole cycle.
+const socialRefreshSlack = 5 * time.Minute
+
+// SocialMetricsArgs takes no arguments: the job refreshes every configured// source at once.
 type SocialMetricsArgs struct{}
 
 func (SocialMetricsArgs) Kind() string { return "social_metrics_refresh" }
@@ -53,7 +57,7 @@ func (w *SocialMetricsWorker) Work(ctx context.Context, _ *river.Job[SocialMetri
 		// A read failure is not a reason to skip the refresh; the write below
 		// will fail too if the database is really gone.
 		slog.Warn("social metrics: cannot read last refresh time; refreshing now", "error", lastErr)
-	} else if age := time.Since(last); age < interval {
+	} else if age := time.Since(last); age+socialRefreshSlack < interval {
 		// The periodic job runs on start, but a restart should not spend API
 		// quota on data that only changes once a day.
 		slog.Info("social metrics: stored data is still fresh; skipping refresh",

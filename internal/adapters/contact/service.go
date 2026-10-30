@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/config"
@@ -14,43 +13,44 @@ import (
 )
 
 const (
-	defaultContactAPIURL = "https://social.geekbeacon.org/api/v1.0/contact/list"
-
 	// ContactCacheKey is the shared row holding the contact-form subjects.
 	ContactCacheKey = "contact:subjects"
 
 	defaultSubjectsTTL = 6 * time.Hour
-)
 
-type contactItem struct {
-	Email       string `json:"email"`
-	Description string `json:"description"`
-}
+	// contactRefreshSlack keeps a periodic job that fires slightly before the
+	// cache expires (because the interval and TTL share one value and the
+	// fetch itself takes time) from skipping the refresh, which would
+	// otherwise leave the cache stale for a whole cycle. It also lets a
+	// refresh attempt proceed when the cache is only marginally fresh, so a
+	// transient upstream outage can recover on the next run.
+	contactRefreshSlack = 5 * time.Minute
+)
 
 // Service serves the contact-form subject list. With a ContentCacheStore it is
 // read-through: requests serve the cached list and the refresh job owns
 // freshness. Without one it falls back to the upstream API (10s timeout).
 type Service struct {
-	client *http.Client
-	url    string
 	cfg    *config.Config
 	store  ports.ContentCacheStore
+	lister ports.DBService
 }
 
 func NewService(cfg *config.Config) *Service {
-	return &Service{
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		url: defaultContactAPIURL,
-		cfg: cfg,
-	}
+	return &Service{cfg: cfg}
 }
 
 // WithStore makes the service read and write through a shared cache. It must
 // be called before the service is used concurrently.
 func (s *Service) WithStore(store ports.ContentCacheStore) *Service {
 	s.store = store
+	return s
+}
+
+// WithLister gives the service a local source for the contact subjects. When
+// configured it replaces the old remote social.geekbeacon.org fetch entirely.
+func (s *Service) WithLister(lister ports.DBService) *Service {
+	s.lister = lister
 	return s
 }
 
@@ -73,7 +73,7 @@ func (s *Service) Refresh(ctx context.Context) (int, error) {
 	if s.store != nil {
 		entry, err := s.store.LoadContentCache(ctx, ContactCacheKey)
 		switch {
-		case err == nil && time.Now().Before(entry.ExpiresAt):
+		case err == nil && time.Now().Add(contactRefreshSlack).Before(entry.ExpiresAt):
 			slog.Info("contact subjects cache is fresh; skipping refresh", "expires_at", entry.ExpiresAt)
 			return 0, nil
 		case err != nil && !errors.Is(err, ports.ErrContentCacheMiss):
@@ -162,29 +162,30 @@ func (s *Service) ttl() time.Duration {
 }
 
 func (s *Service) fetch(ctx context.Context) ([]string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+	if s.lister == nil {
+		// No database is configured: fall back to the built-in subject list so
+		// the contact form keeps working without any upstream dependency.
+		return []string{
+			"Say Hello",
+			"Speaking Engagements",
+			"Business Opportunity",
+			"Content Collaboration",
+		}, nil
 	}
 
-	resp, err := s.client.Do(req)
+	contacts, err := s.lister.ListContacts(ctx, "nixiepixel.com")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch contact list: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	subjects := make([]string, 0, len(contacts))
+	for _, c := range contacts {
+		if c.Subject != "" {
+			subjects = append(subjects, c.Subject)
+		}
 	}
-
-	var items []contactItem
-	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	subjects := make([]string, 0, len(items))
-	for _, item := range items {
-		subjects = append(subjects, item.Description)
+	if len(subjects) == 0 {
+		return nil, errors.New("contact: no subjects available")
 	}
 	return subjects, nil
 }
