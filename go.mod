@@ -3,7 +3,7 @@ module github.com/OSAlt/gb-www-nixie
 go 1.27.3
 
 require (
-	github.com/a-h/templ v0.3.1070
+	github.com/a-h/templ v0.3.1100
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf/parsers/yaml v1.1.1

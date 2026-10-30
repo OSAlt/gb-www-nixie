@@ -3,7 +3,7 @@ module github.com/OSAlt/gb-www-nixie/tools
 go 1.27.3
 
 require (
-	github.com/a-h/templ v0.3.1070
+	github.com/a-h/templ v0.3.1100
 	github.com/magefile/mage v1.17.2
 	github.com/pressly/goose/v3 v3.29.0
 	github.com/sqlc-dev/sqlc v1.31.1
@@ -20,7 +20,7 @@ require (
 	github.com/ClickHouse/ch-go v0.74.0 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.49.0 // indirect
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
-	github.com/andybalholm/brotli v1.2.6 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/brunoga/deep v1.3.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
