@@ -4,38 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/OSAlt/gb-www-nixie/internal/config"
+	"github.com/OSAlt/gb-www-nixie/internal/domain"
 	"github.com/OSAlt/gb-www-nixie/internal/mocks"
 	"github.com/OSAlt/gb-www-nixie/internal/ports"
 	"github.com/stretchr/testify/mock"
 )
 
-func subjectsServer(t *testing.T, subjects ...string) *httptest.Server {
+func contactLister(t *testing.T, subjects ...string) ports.DBService {
 	t.Helper()
-	items := make([]contactItem, 0, len(subjects))
-	for i, subject := range subjects {
-		items = append(items, contactItem{
-			Email:       "user" + string(rune('a'+i)) + "@example.com",
-			Description: subject,
-		})
+	m := mocks.NewMockDBService(t)
+	msgs := make([]domain.ContactMessage, 0, len(subjects))
+	for _, s := range subjects {
+		msgs = append(msgs, domain.ContactMessage{Subject: s})
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(items)
-	}))
-	t.Cleanup(srv.Close)
-	return srv
+	m.EXPECT().ListContacts(mock.Anything, "nixiepixel.com").Return(msgs, nil)
+	return m
 }
 
-func contactServiceFor(srv *httptest.Server, store ports.ContentCacheStore) *Service {
+func contactServiceFor(lister ports.DBService, store ports.ContentCacheStore) *Service {
 	svc := NewService(&config.Config{ContactRefreshSeconds: 3600}).WithStore(store)
-	if srv != nil {
-		svc.url = srv.URL
-		svc.client = srv.Client()
+	if lister != nil {
+		svc = svc.WithLister(lister)
 	}
 	return svc
 }
@@ -57,7 +50,7 @@ func TestService_GetSubjects_UsesStore(t *testing.T) {
 		ExpiresAt: time.Now().Add(time.Hour),
 	}, nil)
 
-	// No upstream server: an empty result would mean the store was ignored.
+	// No lister: an empty result would mean the store was ignored.
 	svc := contactServiceFor(nil, store)
 
 	subjects, err := svc.GetSubjects(context.Background())
@@ -74,8 +67,7 @@ func TestService_GetSubjects_StoreMissFetchesAndSaves(t *testing.T) {
 	store.EXPECT().LoadContentCache(mock.Anything, ContactCacheKey).Return(ports.ContentCacheEntry{}, ports.ErrContentCacheMiss)
 	store.EXPECT().SaveContentCache(mock.Anything, ContactCacheKey, mock.Anything, mock.Anything).Return(nil)
 
-	srv := subjectsServer(t, "Say Hello", "Content Collaboration")
-	svc := contactServiceFor(srv, store)
+	svc := contactServiceFor(contactLister(t, "Say Hello", "Content Collaboration"), store)
 
 	subjects, err := svc.GetSubjects(context.Background())
 	if err != nil {
@@ -91,15 +83,14 @@ func TestService_GetSubjects_StoreErrorFallsBack(t *testing.T) {
 	store.EXPECT().LoadContentCache(mock.Anything, ContactCacheKey).Return(ports.ContentCacheEntry{}, errors.New("db down"))
 	store.EXPECT().SaveContentCache(mock.Anything, ContactCacheKey, mock.Anything, mock.Anything).Return(nil)
 
-	srv := subjectsServer(t, "Say Hello")
-	svc := contactServiceFor(srv, store)
+	svc := contactServiceFor(contactLister(t, "Say Hello"), store)
 
 	subjects, err := svc.GetSubjects(context.Background())
 	if err != nil {
 		t.Fatalf("GetSubjects: %v", err)
 	}
 	if len(subjects) != 1 {
-		t.Fatalf("subjects = %v, want the upstream fallback", subjects)
+		t.Fatalf("subjects = %v, want the local fallback", subjects)
 	}
 }
 
@@ -108,8 +99,7 @@ func TestService_Refresh_SavesToStore(t *testing.T) {
 	store.EXPECT().LoadContentCache(mock.Anything, ContactCacheKey).Return(ports.ContentCacheEntry{}, ports.ErrContentCacheMiss)
 	store.EXPECT().SaveContentCache(mock.Anything, ContactCacheKey, mock.Anything, mock.Anything).Return(nil)
 
-	srv := subjectsServer(t, "Say Hello", "Speaking Engagements")
-	svc := contactServiceFor(srv, store)
+	svc := contactServiceFor(contactLister(t, "Say Hello", "Speaking Engagements"), store)
 
 	count, err := svc.Refresh(context.Background())
 	if err != nil {
@@ -141,11 +131,12 @@ func TestService_Refresh_EmptyUpstreamIsAnError(t *testing.T) {
 	store := mocks.NewMockContentCacheStore(t)
 	store.EXPECT().LoadContentCache(mock.Anything, ContactCacheKey).Return(ports.ContentCacheEntry{}, ports.ErrContentCacheMiss)
 
-	srv := subjectsServer(t)
-	svc := contactServiceFor(srv, store)
+	empty := mocks.NewMockDBService(t)
+	empty.EXPECT().ListContacts(mock.Anything, "nixiepixel.com").Return([]domain.ContactMessage{}, nil)
+	svc := contactServiceFor(empty, store)
 
 	if _, err := svc.Refresh(context.Background()); err == nil {
-		t.Fatal("expected an error for an empty upstream list")
+		t.Fatal("expected an error for an empty subject list")
 	}
 }
 

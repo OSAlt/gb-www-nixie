@@ -1,33 +1,25 @@
 package contact
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"context"
 	"testing"
 
 	"github.com/OSAlt/gb-www-nixie/internal/config"
+	"github.com/OSAlt/gb-www-nixie/internal/domain"
+	"github.com/OSAlt/gb-www-nixie/internal/mocks"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestService_GetSubjects(t *testing.T) {
-	// 1. Setup mock server
-	mockItems := []contactItem{
-		{Email: "test1@example.com", Description: "Subject 1"},
-		{Email: "test2@example.com", Description: "Subject 2"},
-	}
+	lister := mocks.NewMockDBService(t)
+	lister.EXPECT().ListContacts(mock.Anything, "nixiepixel.com").Return([]domain.ContactMessage{
+		{Subject: "Subject 1"},
+		{Subject: "Subject 2"},
+	}, nil)
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(mockItems)
-	}))
-	defer ts.Close()
+	s := NewService(&config.Config{}).WithLister(lister)
 
-	s := &Service{
-		client: ts.Client(),
-		url:    ts.URL,
-		cfg:    &config.Config{},
-	}
-
-	subjects, err := s.GetSubjects(t.Context())
+	subjects, err := s.GetSubjects(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
