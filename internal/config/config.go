@@ -50,6 +50,11 @@ type Config struct {
 	DiscordGuildId       string `koanf:"discord_guild_id"`
 	SocialScrapeURL      string `koanf:"social_scrape_url"`
 	SocialRefreshSeconds int    `koanf:"social_refresh_seconds"`
+
+	// River UI (embedded). Both must be set to enable the UI; auth is always
+	// required when it is enabled.
+	RiverUIUser string `koanf:"river_ui_user"`
+	RiverUIPass string `koanf:"river_ui_pass"`
 }
 
 func Load() (*Config, error) {

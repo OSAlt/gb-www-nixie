@@ -18,23 +18,6 @@ services:
       timeout: 3s
       retries: 15
 
-  # River's web UI. Reads the shared database directly, so it shows the same
-  # jobs the app works. RIVER_SCHEMA must match db_adapter.RiverSchema.
-  # Open http://localhost:8081 after `mage dbup` + `mage migrate`.
-  riverui:
-    image: ghcr.io/riverqueue/riverui:latest
-    restart: always
-    environment:
-      DATABASE_URL: postgres://nixie:nixie_password@db:5432/nixiedb?sslmode=disable
-      RIVER_SCHEMA: river
-    ports:
-      - "8081:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - dev_network
-
 networks:
   dev_network:
     name: dev_network

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"riverqueue.com/riverui"
 )
 
 const shutdownTimeout = 15 * time.Second
@@ -133,6 +135,38 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	// Embedded River UI (optional, requires DB + credentials).
+	if riverClient != nil && cfg.RiverUIUser != "" && cfg.RiverUIPass != "" {
+		uiHandler, err := riverui.NewHandler(&riverui.HandlerOpts{
+			Endpoints: riverui.NewEndpoints(riverClient, nil),
+			Logger:    slog.Default(),
+			Prefix:    "/ui/river",
+		})
+		if err != nil {
+			slog.Error("river ui handler failed", "error", err)
+		} else if err := uiHandler.Start(ctx); err != nil {
+			slog.Error("river ui start failed", "error", err)
+		} else {
+			auth := func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					user, pass, ok := r.BasicAuth()
+					if !ok ||
+						subtle.ConstantTimeCompare([]byte(user), []byte(cfg.RiverUIUser)) != 1 ||
+						subtle.ConstantTimeCompare([]byte(pass), []byte(cfg.RiverUIPass)) != 1 {
+						w.Header().Set("WWW-Authenticate", `Basic realm="River UI"`)
+						http.Error(w, "Unauthorized", http.StatusUnauthorized)
+						return
+					}
+					next.ServeHTTP(w, r)
+				})
+			}
+			mux.Handle("/ui/river/", auth(uiHandler))
+			slog.Info("river ui enabled", "path", "/ui/river/")
+		}
+	} else if riverClient != nil {
+		slog.Info("river ui disabled: set river_ui_user and river_ui_pass to enable")
+	}
+
 	mux.HandleFunc("GET /{$}", h.Index)
 	mux.HandleFunc("GET /blog", h.Blog)
 	mux.HandleFunc("GET /faq", h.FAQ)
@@ -141,7 +175,6 @@ func main() {
 	mux.HandleFunc("GET /social", h.Social)
 
 	// API Routes
-	mux.HandleFunc("GET /api/v1/contact/list", h.APIListContacts)
 	mux.HandleFunc("GET /api/v1/social/count/all", h.APISocialCountAll)
 	mux.HandleFunc("GET /api/v1/social/health", h.APISocialHealth)
 	mux.HandleFunc("GET /api/v1/content/health", h.APIContentHealth)

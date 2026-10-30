@@ -132,17 +132,6 @@ func (h *Handler) Contact(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(templates.ContactPage(subjects, h.cfg.Newsletters)).ServeHTTP(w, r)
 }
 
-func (h *Handler) APIListContacts(w http.ResponseWriter, r *http.Request) {
-	domainName := r.URL.Query().Get("domain")
-	contacts, err := h.dbService.ListContacts(r.Context(), domainName)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(contacts)
-}
-
 func (h *Handler) APISocialCountAll(w http.ResponseWriter, r *http.Request) {
 	counts, err := h.dbService.GetSocialCounts(r.Context())
 	if err != nil {
