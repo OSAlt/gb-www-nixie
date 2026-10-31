@@ -263,6 +263,19 @@ func startRiver(ctx context.Context, pool *pgxpool.Pool, deps jobs.Deps) (*river
 		return nil, err
 	}
 
+	// Force a refresh on every boot so caches are warmed immediately, even if
+	// periodic scheduling or RunOnStart is skipped.
+	runCtx := context.WithoutCancel(ctx)
+	if _, err := client.Insert(runCtx, jobs.MediaRefreshArgs{}, nil); err != nil {
+		slog.Warn("media refresh enqueue failed", "error", err)
+	}
+	if _, err := client.Insert(runCtx, jobs.BlogRefreshArgs{}, nil); err != nil {
+		slog.Warn("blog refresh enqueue failed", "error", err)
+	}
+	if _, err := client.Insert(runCtx, jobs.ContactRefreshArgs{}, nil); err != nil {
+		slog.Warn("contact refresh enqueue failed", "error", err)
+	}
+
 	slog.Info("background jobs started", "schema", db_adapter.RiverSchema)
 	return client, nil
 }
