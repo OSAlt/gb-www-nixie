@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:19-alpine
     restart: always
     environment:
       POSTGRES_USER: nixie
