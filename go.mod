@@ -19,7 +19,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.45.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.45.0
 	golang.org/x/sync v0.25.0
-	riverqueue.com/riverui v0.22.0
+	riverqueue.com/riverui v0.23.0
 )
 
 require (
