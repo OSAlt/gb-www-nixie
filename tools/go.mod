@@ -5,7 +5,7 @@ go 1.27.4
 require (
 	github.com/a-h/templ v0.3.1118
 	github.com/magefile/mage v1.17.2
-	github.com/pressly/goose/v3 v3.30.1
+	github.com/pressly/goose/v3 v3.30.2
 	github.com/sqlc-dev/sqlc v1.31.1
 	github.com/vektra/mockery/v3 v3.9.2
 )
@@ -93,7 +93,6 @@ require (
 	github.com/riza-io/grpc-go v0.2.0 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/sethvargo/go-retry v0.5.0 // indirect
 	github.com/shopspring/decimal v1.6.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
